@@ -425,9 +425,9 @@ void reconnect()
         {
             Serial.println("connected");
             // Once connected, publish an announcement...
+            client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
             const char *version_string = "System's at version v" TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH) ", we stayin' current.";
             client.publish(topic_status, version_string);
-            client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
             // ... and resubscribe
             client.subscribe(topic_command);
         }
