@@ -329,16 +329,16 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     // Command Handling
     if (String(topic) == topic_command)
-    {
-        if (message == "VERSION")
-        {
-            const char *version_string = "We rockin' v" TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH) " right now.";
-            client.publish(topic_status, version_string);
-        }
-        else if (message == "PING")
+    {   
+        if (message == "PING")
         {
             client.publish(topic_status, "εつ💦(‿ˠ‿) What's good, fam?");
             blink_led_fast();
+        }
+        else if (message == "VERSION")
+        {
+            const char *version_string = "We rockin' v" TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH) " right now.";
+            client.publish(topic_status, version_string);
         }
         else if (message == "FORCE_POWER_OFF_WIN_SERVER")
         {
@@ -430,7 +430,9 @@ void reconnect()
             // Once connected, publish an announcement...
             client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
             const char *version_string = "System's at version v" TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH) ", we stayin' current.";
+            const char *update_info = "Update server's live! Head to http://" MDNS_HOSTNAME ".local and lock in with your info.";
             client.publish(topic_status, version_string);
+            client.publish(topic_status, update_info);
             // ... and resubscribe
             client.subscribe(topic_command);
         }
