@@ -10,6 +10,7 @@
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 const char *firmware_version = TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH);
+const char *version_string = "Firmware Version: " TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH);
 
 // Web updater setup
 const char *mdns_hostname = MDNS_HOSTNAME;
@@ -333,7 +334,6 @@ void callback(char *topic, byte *payload, unsigned int length)
         if (message == "PING")
         {
             Serial.println("Ping received. Sending Pong.");
-            client.publish(topic_status, firmware_version);
             client.publish(topic_status, "εつ💦(‿ˠ‿) What's good, fam?");
             blink_led_fast();
         }
@@ -421,6 +421,7 @@ void reconnect()
         {
             Serial.println("connected");
             // Once connected, publish an announcement...
+            client.publish(topic_status, version_string);
             client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
             // ... and resubscribe
             client.subscribe(topic_command);
