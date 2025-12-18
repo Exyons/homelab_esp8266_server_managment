@@ -17,22 +17,55 @@ const char *custom_html = R"rawliteral(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Update</title>
+    <title>Nigga Firmware Updater</title>
     <style>
-        :root{--bg-color:#f4f4f9;--card-bg:#fff;--text-color:#333;--border-color:#ccc;--btn-bg:#007bff;--btn-hover:#0056b3;--status-color:#555;--hover-border:#007bff}[data-theme=dark]{--bg-color:#121212;--card-bg:#1e1e1e;--text-color:#e0e0e0;--border-color:#444;--btn-bg:#0069d9;--btn-hover:#0056b3;--status-color:#aaa;--hover-border:#0069d9}body{font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background-color:var(--bg-color);color:var(--text-color);display:flex;justify-content:center;align-items:center;height:100vh;margin:0;transition:background-color .3s,color .3s}.container{background:var(--card-bg);padding:2rem;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,.1);width:100%;max-width:400px;text-align:center;transition:background-color .3s}h2{margin-bottom:1.5rem;color:var(--text-color)}.file-upload{position:relative;display:inline-block;width:100%;margin-bottom:1rem}input[type=file]{display:none}.custom-file-upload{border:2px dashed var(--border-color);display:inline-block;padding:10px 12px;cursor:pointer;width:100%;box-sizing:border-box;border-radius:5px;color:var(--text-color);transition:all .3s}.custom-file-upload:hover{border-color:var(--hover-border);color:var(--hover-border)}.btn{background-color:var(--btn-bg);color:#fff;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;font-size:16px;width:100%;transition:background .3s}.btn:hover{background-color:var(--btn-hover)}.btn:disabled{background-color:#ccc;cursor:not-allowed}#progress-container{width:100%;background-color:var(--border-color);border-radius:5px;margin-top:1rem;display:none;overflow:hidden}#progress-bar{width:0;height:20px;background-color:#28a745;text-align:center;line-height:20px;color:#fff;transition:width .1s ease}#status{margin-top:1rem;color:var(--status-color)}.theme-toggle{position:absolute;top:20px;right:20px;cursor:pointer;font-size:24px;user-select:none}
+        :root {
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #cccccc;
+            --btn-bg: #007bff;
+            --btn-hover: #0056b3;
+            --status-color: #555555;
+            --hover-border: #007bff;
+        }
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #444444;
+            --btn-bg: #0069d9;
+            --btn-hover: #0056b3;
+            --status-color: #aaaaaa;
+            --hover-border: #0069d9;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background-color 0.3s, color 0.3s; }
+        .container { background: var(--card-bg); padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; transition: background-color 0.3s; }
+        h2 { margin-bottom: 1.5rem; color: var(--text-color); }
+        .file-upload { position: relative; display: inline-block; width: 100%; margin-bottom: 1rem; }
+        input[type="file"] { display: none; }
+        .custom-file-upload { border: 2px dashed var(--border-color); display: inline-block; padding: 10px 12px; cursor: pointer; width: 100%; box-sizing: border-box; border-radius: 5px; color: var(--text-color); transition: all 0.3s; }
+        .custom-file-upload:hover { border-color: var(--hover-border); color: var(--hover-border); }
+        .btn { background-color: var(--btn-bg); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; transition: background 0.3s; }
+        .btn:hover { background-color: var(--btn-hover); }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        #progress-container { width: 100%; background-color: var(--border-color); border-radius: 5px; margin-top: 1rem; display: none; overflow: hidden; }
+        #progress-bar { width: 0%; height: 20px; background-color: #28a745; text-align: center; line-height: 20px; color: white; transition: width 0.1s ease; }
+        #status { margin-top: 1rem; color: var(--status-color); }
+        .theme-toggle { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 24px; user-select: none; }
     </style>
 </head>
 <body>
     <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙</div>
     <div class="container">
-        <h2>Firmware Update</h2>
+        <h2>Go 'head and get that system right</h2>
         <div class="file-upload">
             <label for="file-input" class="custom-file-upload" id="file-label">
-                Select Firmware (.bin)
+                Grab that firmware.bin real quick.
             </label>
             <input id="file-input" type="file" accept=".bin" onchange="updateFileName()">
         </div>
-        <button id="upload-btn" class="btn" onclick="uploadFirmware()">Update Device</button>
+        <button id="upload-btn" class="btn" onclick="uploadFirmware()">Update Nigga</button>
         
         <div id="progress-container">
             <div id="progress-bar">0%</div>
@@ -41,7 +74,112 @@ const char *custom_html = R"rawliteral(
     </div>
 
     <script>
-        function toggleTheme(){const e=document.documentElement,t="dark"===e.getAttribute("data-theme")?"light":"dark";e.setAttribute("data-theme",t),localStorage.setItem("theme",t),document.getElementById("theme-toggle").innerText="dark"===t?"☀️":"🌙"}function updateFileName(){var e=document.getElementById("file-input"),t=document.getElementById("file-label");e.files&&e.files.length>0?t.textContent=e.files[0].name:t.textContent="Select Firmware (.bin)"}function uploadFirmware(){var e=document.getElementById("file-input");if(0!==e.files.length){var t=e.files[0],n=new FormData;n.append("update",t);var o=new XMLHttpRequest;document.getElementById("upload-btn").disabled=!0,document.getElementById("progress-container").style.display="block",document.getElementById("status").innerText="Uploading...",o.upload.addEventListener("progress",(function(e){if(e.lengthComputable){var t=Math.round(e.loaded/e.total*100),n=document.getElementById("progress-bar");n.style.width=t+"%",n.innerText=t+"%"}}),!1),o.onload=function(){var e=document.getElementById("status");if(200===o.status){var t=10;e.innerHTML="Update Success! Rebooting... <br> Page will reload in <span id='count'>"+t+"</span>s",document.getElementById("progress-bar").style.backgroundColor="#28a745";var n=setInterval((function(){t--,document.getElementById("count").innerText=t,t<=0&&(clearInterval(n),window.location.reload())}),1e3)}else e.innerText="Update Failed. Error: "+o.statusText,document.getElementById("progress-bar").style.backgroundColor="#dc3545",document.getElementById("upload-btn").disabled=!1},o.onerror=function(){document.getElementById("status").innerText="Network Error.",document.getElementById("upload-btn").disabled=!1},o.open("POST","/update"),o.send(n)}else alert("Please select a file first.")}!function(){const e=localStorage.getItem("theme")||"light";document.documentElement.setAttribute("data-theme",e),document.getElementById("theme-toggle").innerText="dark"===e?"☀️":"🌙"}();
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            document.getElementById('theme-toggle').innerText = next === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Initialize Theme
+        (function() {
+            const saved = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', saved);
+            document.getElementById('theme-toggle').innerText = saved === 'dark' ? '☀️' : '🌙';
+        })();
+
+        function updateFileName() {
+            var input = document.getElementById('file-input');
+            var label = document.getElementById('file-label');
+            if (input.files && input.files.length > 0) {
+                label.textContent = input.files[0].name;
+            } else {
+                label.textContent = "Select Firmware (.bin)";
+            }
+        }
+
+        function uploadFirmware() {
+            var input = document.getElementById('file-input');
+            if(input.files.length === 0){
+                alert("Please select a file first.");
+                return;
+            }
+            
+            var file = input.files[0];
+            var formData = new FormData();
+            formData.append("update", file);
+            
+            var xhr = new XMLHttpRequest();
+            
+            // UI updates
+            document.getElementById('upload-btn').disabled = true;
+            document.getElementById('file-input').disabled = true;
+            document.getElementById('progress-container').style.display = 'block';
+            document.getElementById('status').innerText = "Uploading...";
+
+            // Progress event
+            xhr.upload.addEventListener("progress", function(e) {
+                if (e.lengthComputable) {
+                    var percent = Math.round((e.loaded / e.total) * 100);
+                    var progressBar = document.getElementById('progress-bar');
+                    progressBar.style.width = percent + "%";
+                    progressBar.innerText = percent + "%";
+                    
+                    var msgs = [
+                        "Gettin' that system refresh...",
+                        "Bout to level up the firmware...",
+                        "Uploading that good stuff...",
+                        "Hold tight, we workin'...",
+                        "Sending those bits, fam...",
+                        "Almost there, stay chill...",
+                        "Finna be a new machine...",
+                        "Just a sec, G...",
+                        "Loading that heat...",
+                        "Trust the process..."
+                    ];
+
+                    // Change text every 5% to avoid flickering
+                    if (percent % 5 === 0) {
+                        document.getElementById('status').innerText = msgs[Math.floor(Math.random() * msgs.length)];
+                    }
+                }
+            }, false);
+
+            // Completion handler
+            xhr.onload = function() {
+                var statusDiv = document.getElementById('status');
+                if (xhr.status === 200) {
+                    var countdown = 15;
+                    statusDiv.innerHTML = "Update Success! Rebooting... <br> Page will reload in <span id='count'>" + countdown + "</span>s";
+                    document.getElementById('progress-bar').style.backgroundColor = "#28a745";
+                    
+                    var timer = setInterval(function() {
+                        countdown--;
+                        document.getElementById('count').innerText = countdown;
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            window.location.reload();
+                        }
+                    }, 1000);
+                } else {
+                    statusDiv.innerText = "Nah bruh, update bricked. Error: " + xhr.statusText;
+                    document.getElementById('progress-bar').style.backgroundColor = "#dc3545";
+                    document.getElementById('upload-btn').disabled = false;
+                    document.getElementById('file-input').disabled = false;
+                }
+            };
+
+            xhr.onerror = function() {
+                document.getElementById('status').innerText = "Network's trippin'. Can't send it, fam.";
+                document.getElementById('upload-btn').disabled = false;
+                document.getElementById('file-input').disabled = false;
+            };
+
+            xhr.open("POST", "/update");
+            xhr.send(formData);
+        }
     </script>
 </body>
 </html>
@@ -191,40 +329,40 @@ void callback(char *topic, byte *payload, unsigned int length)
         if (message == "PING")
         {
             Serial.println("Ping received. Sending Pong.");
-            client.publish(topic_status, "PONG 🏓");
+            client.publish(topic_status, "What's good, fam?");
             blink_led_fast();
         }
         else if (message == "FORCE_POWER_OFF_WIN_SERVER")
         {
-            client.publish(topic_status, "INFO: Powering off win-server forcefully... 😱");
+            client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Aight, I'm finna shut down win-server for real, it's gotta go.");
             digitalWrite(POWER_PIN_WIN_SERVER, LOW);
             delay(5000);
             digitalWrite(POWER_PIN_WIN_SERVER, HIGH);
-            client.publish(topic_status, "INFO: Done!! 😃");
+            client.publish(topic_status, "ᕙ(•̀ ᗜ •́)ᕗ We good.");
         }
         else if (message == "FORCE_POWER_OFF_NAS_SERVER")
         {
-            client.publish(topic_status, "INFO: Powering off nas-server forcefully... 😱");
+            client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Yo, just heads up, I'm force-killing the nas-server right now.");
             digitalWrite(POWER_PIN_NAS_SERVER, LOW);
             delay(5000);
             digitalWrite(POWER_PIN_NAS_SERVER, HIGH);
-            client.publish(topic_status, "INFO: Done!! 😃");
+            client.publish(topic_status, "ᕙ(•̀ ᗜ •́)ᕗ Bet.");
         }
         else if (message == "POWER_ON_WIN_SERVER")
         {
-            client.publish(topic_status, "INFO: Powering on win-server... ☺️");
+            client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Bout to fire up win-server... ▄︻デ۪۞━一💥");
             digitalWrite(POWER_PIN_WIN_SERVER, LOW);
             delay(500);
             digitalWrite(POWER_PIN_WIN_SERVER, HIGH);
-            client.publish(topic_status, "INFO: Done!! 😃");
+            client.publish(topic_status, "ᕙ(•̀ ᗜ •́)ᕗ Say less.");
         }
         else if (message == "POWER_ON_NAS_SERVER")
         {
-            client.publish(topic_status, "INFO: Powering on nas-server... ☺️");
+            client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Bout to get nas-server poppin... ▄︻デ۪۞━一💥");
             digitalWrite(POWER_PIN_NAS_SERVER, LOW);
             delay(500);
             digitalWrite(POWER_PIN_NAS_SERVER, HIGH);
-            client.publish(topic_status, "INFO: Done!! 😃");
+            client.publish(topic_status, "ᕙ(•̀ ᗜ •́)ᕗ It's a wrap.");
         }
         else if (message == "MAGIC_WAKE_NAS")
         {
@@ -232,18 +370,26 @@ void callback(char *topic, byte *payload, unsigned int length)
             if (status == 1)
             {
                 // Serial.println("Magic Packet Sent to NAS Server");
-                client.publish(topic_status, "INFO: 🪄 📦 Sent to NAS Server!! ☺️");
+                client.publish(topic_status, "(-_•)▄︻テحكـ━一💥 Shot that magic packet to the NAS, it's finna wake up.");
             }
             else
             {
-                client.publish(topic_status, "ERROR: 🪄 📦 not sent!!! 😢");
+                client.publish(topic_status, "(,,>﹏<,,)👉👈 Nah bruh, that magic packet didn't even go through! 😢");
             }
             blink_led_fast();
         }
+        else if (message == "FUCK_YOU"){
+            client.publish(topic_status, "ᶠᶸᶜᵏᵧₒᵤ!𝓷𝓲𝓰𝓰𝓪 (-_•)╦̵̵̿╤─");
+        }
+        else if (message == "MIDDLE_FINGER") {
+            client.publish(topic_status, "╭∩╮(＾◡＾)╭∩╮");
+        }
+        else if (message == "DIDDY") {
+            client.publish(topic_status, "𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
+        }
         else
         {
-            // Serial.println("Unknown command");
-            client.publish(topic_status, "Unknown Command");
+            client.publish(topic_status, "¯\\_(ツ)_/¯ Whatchu mean? I don't know that one.");
         }
     }
 }
@@ -259,7 +405,7 @@ void reconnect()
         {
             Serial.println("connected");
             // Once connected, publish an announcement...
-            client.publish(topic_status, "ESP8266 Is Online Bayba Wohoo!!! 😆");
+            client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
             // ... and resubscribe
             client.subscribe(topic_command);
         }
