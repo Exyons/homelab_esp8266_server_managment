@@ -335,9 +335,8 @@ void callback(char *topic, byte *payload, unsigned int length)
             const char *version_string = "We rockin' v" TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH) " right now.";
             client.publish(topic_status, version_string);
         }
-        if (message == "PING")
+        else if (message == "PING")
         {
-            // Serial.println("Ping received. Sending Pong.");
             client.publish(topic_status, "εつ💦(‿ˠ‿) What's good, fam?");
             blink_led_fast();
         }
@@ -378,18 +377,20 @@ void callback(char *topic, byte *payload, unsigned int length)
             const int status = send_magic_packet();
             if (status == 1)
             {
-                // Serial.println("Magic Packet Sent to NAS Server");
-                client.publish(topic_status, "(-_•)▄︻テحكـ━一💥 Shot that magic packet to the NAS, it's finna wake up.");
+                client.publish(topic_status, "(-_•)▄︻テحكـ━一💥 Shot that magic packet right into the NAS, it's finna wake up.");
             }
             else
             {
                 client.publish(topic_status, "(,,>﹏<,,)👉👈 Nah bruh, that magic packet didn't even go through! 😢");
             }
-            blink_led_fast();
         }
         else if (message == "FUCK_YOU")
         {
-            client.publish(topic_status, "ᶠᶸᶜᵏᵧₒᵤ!𝓷𝓲𝓰𝓰𝓪 ⎛⎝( ` ᢍ ´ )⎠⎞ᵐᵘʰᵃʰᵃ (-_•)╦̵̵̿╤─");
+            client.publish(topic_status, "ᶠᶸᶜᵏᵧₒᵤ!𝓷𝓲𝓰𝓰𝓪");
+            delay(20);
+            client.publish(topic_status, "⎛⎝(`ᢍ´)⎠⎞ᵐᵘʰᵃʰᵃ");
+            delay(20);
+            client.publish(topic_status, "(-_•)╦̵̵̿╤─");
         }
         else if (message == "MIDDLE_FINGER")
         {
@@ -397,7 +398,9 @@ void callback(char *topic, byte *payload, unsigned int length)
         }
         else if (message == "DIDDY")
         {
-            client.publish(topic_status, "(≖‿≖) Heehee, 𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
+            client.publish(topic_status, "(≖‿≖) Heehee");
+            delay(25);
+            client.publish(topic_status, "𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
         }
         else if (message == "BITCH")
         {
