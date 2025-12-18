@@ -450,7 +450,7 @@ void reconnect()
         client.publish(topic_status, version_string);
         client.publish(topic_status, update_info);
         // ... and resubscribe
-        client.subscribe(topic_command);
+        // client.subscribe(topic_command);
     }
     else
     {
