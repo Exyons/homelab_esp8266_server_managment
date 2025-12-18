@@ -1,0 +1,13 @@
+[env:nodemcuv2]
+platform = espressif8266
+board = nodemcuv2
+framework = arduino
+monitor_speed = 115200
+lib_deps = knolleary/PubSubClient@^2.8
+build_flags = 
+    -D WIFI_SSID=\"YOUR_SSID\"
+    -D WIFI_PASSWORD=\"YOUR_PASS\"
+    -D MQTT_SERVER=\"YOUR_MQTT_SERVER\"
+    -D MQTT_USERNAME=\"YOUR_MQTT_USERNAME\"
+    -D MQTT_PASSWORD=\"YOUR_MQTT_PASSWORD\"
+    -D MQTT_DEVICE_ID=\"YOUR_MQTT_DEVICE_ID\"
