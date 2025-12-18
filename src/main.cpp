@@ -8,9 +8,9 @@
 #include <Updater.h>
 
 // Web updater setup
-const char *host = "esp8266-webupdate";
-const char *update_username = "admin";
-const char *update_password = "admin";
+const char *mdns_hostname = MDNS_HOSTNAME;
+const char *update_username = UPDATE_USERNAME;
+const char *update_password = UPDATE_PASSWORD;
 const char *custom_html = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
@@ -268,25 +268,26 @@ void reconnect()
 
 void setup_webupdater()
 {
-    MDNS.begin(host);
+    MDNS.begin(mdns_hostname);
 
     // Serve the HTML page
-    http_server.on("/", HTTP_GET, []() {
+    http_server.on("/", HTTP_GET, []()
+                   {
         if (!http_server.authenticate(update_username, update_password)) {
             return http_server.requestAuthentication();
         }
-        http_server.send(200, "text/html", custom_html);
-    });
+        http_server.send(200, "text/html", custom_html); });
 
     // Handle the upload
-    http_server.on("/update", HTTP_POST, []() {
+    http_server.on("/update", HTTP_POST, []()
+                   {
         if (!http_server.authenticate(update_username, update_password)) {
             return http_server.requestAuthentication();
         }
         http_server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
         delay(1000);
-        ESP.restart();
-    }, []() {
+        ESP.restart(); }, []()
+                   {
         if (!http_server.authenticate(update_username, update_password)) {
             return;
         }
@@ -314,17 +315,17 @@ void setup_webupdater()
     } });
 
     // Handle 404
-    http_server.onNotFound([]() {
+    http_server.onNotFound([]()
+                           {
         if (!http_server.authenticate(update_username, update_password)) {
             return http_server.requestAuthentication();
         }
-        http_server.send(404, "text/html", not_found_html);
-    });
+        http_server.send(404, "text/html", not_found_html); });
 
     http_server.begin();
 
     MDNS.addService("http", "tcp", 80);
-    Serial.printf("HTTPUpdateServer ready! Open http://%s.local in your browser and login with username '%s' and password '%s'\n", host, update_username, update_password);
+    Serial.printf("HTTPUpdateServer ready! Open http://%s.local in your browser and login with username '%s' and password '%s'\n", mdns_hostname, update_username, update_password);
 }
 
 void setup()
