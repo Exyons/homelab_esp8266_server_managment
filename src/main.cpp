@@ -224,7 +224,7 @@ void callback(char *topic, byte *payload, unsigned int length)
             if (status == 1)
             {
                 // Serial.println("Magic Packet Sent to NAS Server");
-                client.publish(topic_status, "\\033[0;32mINFO: 🪄 📦 Sent to NAS Server!! ☺️");
+                client.publish(topic_status, "INFO: 🪄 📦 Sent to NAS Server!! ☺️");
             }
             else
             {
