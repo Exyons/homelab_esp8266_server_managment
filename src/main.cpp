@@ -155,6 +155,14 @@ void setup_wifi()
         delay(250);
     }
 
+    // Blink builyin LED fast to show wifi is connected
+    for (int i = 0; i < 2; i++)
+    {
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(50);
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(50);
+    }
     randomSeed(micros());
 
     Serial.println();
