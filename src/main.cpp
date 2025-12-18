@@ -538,7 +538,6 @@ void setup_webupdater()
     http_server.begin();
 
     MDNS.addService("http", "tcp", 80);
-    Serial.printf("HTTPUpdateServer ready! Open http://%s.local in your browser and login with credentials.\n", mdns_hostname);
 }
 
 void setup()
