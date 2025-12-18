@@ -399,11 +399,11 @@ void callback(char *topic, byte *payload, unsigned int length)
         {
             client.publish(topic_status, "(≖‿≖) Heehee, 𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
         }
-        else if (message = "BITCH")
+        else if (message == "BITCH")
         {
             client.publish(topic_status, "(＾◡＾)っ✂╰⋃╯");
         }
-        else if (message = "UWU")
+        else if (message == "UWU")
         {
             client.publish(topic_status, "U⩊U");
         }
