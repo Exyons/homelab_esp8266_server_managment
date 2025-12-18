@@ -11,11 +11,8 @@
 #define TOSTRING(x) STRINGIFY(x)
 const char *firmware_version = TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH);
 
-// Web updater setup
-const char *mdns_hostname = MDNS_HOSTNAME;
-const char *update_username = UPDATE_USERNAME;
-const char *update_password = UPDATE_PASSWORD;
-const char *custom_html = R"rawliteral(
+// Addding PROGMEM moves the contents to flash memory, this frees up RAM
+const char *index_html_top PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,6 +50,8 @@ const char *custom_html = R"rawliteral(
         .btn { background-color: var(--btn-bg); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; transition: background 0.3s; }
         .btn:hover { background-color: var(--btn-hover); }
         .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .btn-danger { background-color: #dc3545; margin-top: 1rem; }
+        .btn-danger:hover { background-color: #c82333; }
         #progress-container { width: 100%; background-color: var(--border-color); border-radius: 5px; margin-top: 1rem; display: none; overflow: hidden; }
         #progress-bar { width: 0%; height: 20px; background-color: #28a745; text-align: center; line-height: 20px; color: white; transition: width 0.1s ease; }
         #status { margin-top: 1rem; color: var(--status-color); }
@@ -63,6 +62,9 @@ const char *custom_html = R"rawliteral(
     <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙</div>
     <div class="container">
         <h2>Go 'head and get that system right</h2>
+)rawliteral";
+
+const char *index_html_bottom = R"rawliteral(
         <div class="file-upload">
             <label for="file-input" class="custom-file-upload" id="file-label">
                 Grab that firmware.bin real quick.
@@ -70,6 +72,7 @@ const char *custom_html = R"rawliteral(
             <input id="file-input" type="file" accept=".bin" onchange="updateFileName()">
         </div>
         <button id="upload-btn" class="btn" onclick="uploadFirmware()">Update Nigga</button>
+        <button id="reboot-btn" class="btn btn-danger" onclick="rebootDevice()">Reboot Nigga</button>
         
         <div id="progress-container">
             <div id="progress-bar">0%</div>
@@ -104,6 +107,22 @@ const char *custom_html = R"rawliteral(
             }
         }
 
+        function rebootDevice() {
+            if (!confirm("Are you sure you want to reboot the device?")) return;
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/reboot");
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    alert("Device is rebooting. Page will reload in 15 seconds.");
+                    setTimeout(function() { window.location.reload(); }, 15000);
+                } else {
+                    alert("Reboot failed.");
+                }
+            };
+            xhr.send();
+        }
+
         function uploadFirmware() {
             var input = document.getElementById('file-input');
             if(input.files.length === 0){
@@ -119,6 +138,7 @@ const char *custom_html = R"rawliteral(
             
             // UI updates
             document.getElementById('upload-btn').disabled = true;
+            document.getElementById('reboot-btn').disabled = true;
             document.getElementById('file-input').disabled = true;
             document.getElementById('progress-container').style.display = 'block';
             document.getElementById('status').innerText = "Uploading...";
@@ -171,6 +191,7 @@ const char *custom_html = R"rawliteral(
                     statusDiv.innerText = "Nah bruh, update bricked. Error: " + xhr.statusText;
                     document.getElementById('progress-bar').style.backgroundColor = "#dc3545";
                     document.getElementById('upload-btn').disabled = false;
+                    document.getElementById('reboot-btn').disabled = false;
                     document.getElementById('file-input').disabled = false;
                 }
             };
@@ -178,6 +199,7 @@ const char *custom_html = R"rawliteral(
             xhr.onerror = function() {
                 document.getElementById('status').innerText = "Network's trippin'. Can't send it, fam.";
                 document.getElementById('upload-btn').disabled = false;
+                document.getElementById('reboot-btn').disabled = false;
                 document.getElementById('file-input').disabled = false;
             };
 
@@ -189,7 +211,7 @@ const char *custom_html = R"rawliteral(
 </html>
 )rawliteral";
 
-const char *not_found_html = R"rawliteral(
+const char *not_found_html PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -214,6 +236,14 @@ const char *not_found_html = R"rawliteral(
 </body>
 </html>
 )rawliteral";
+
+const unsigned long mqtt_reconnect_interval = 5000;
+unsigned long mqtt_reconnect_current_millis = 0;
+
+// Web updater setup
+const char *mdns_hostname = MDNS_HOSTNAME;
+const char *update_username = UPDATE_USERNAME;
+const char *update_password = UPDATE_PASSWORD;
 
 // Update these with your network details
 const char *ssid = WIFI_SSID;
@@ -329,7 +359,7 @@ void callback(char *topic, byte *payload, unsigned int length)
 
     // Command Handling
     if (String(topic) == topic_command)
-    {   
+    {
         if (message == "PING")
         {
             client.publish(topic_status, "εつ💦(‿ˠ‿) What's good, fam?");
@@ -419,31 +449,26 @@ void callback(char *topic, byte *payload, unsigned int length)
 
 void reconnect()
 {
-    // Loop until we're reconnected
-    while (!client.connected())
+    // Check if we're connected
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect(client_id, mqtt_user, mqtt_password))
     {
-        Serial.print("Attempting MQTT connection...");
-        // Attempt to connect
-        if (client.connect(client_id, mqtt_user, mqtt_password))
-        {
-            Serial.println("connected");
-            // Once connected, publish an announcement...
-            client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
-            const char *version_string = "System's at version v" TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH) ", we stayin' current.";
-            const char *update_info = "Update server's live! Head to http://" MDNS_HOSTNAME ".local and lock in with your info.";
-            client.publish(topic_status, version_string);
-            client.publish(topic_status, update_info);
-            // ... and resubscribe
-            client.subscribe(topic_command);
-        }
-        else
-        {
-            Serial.print("failed, rc=");
-            Serial.print(client.state());
-            Serial.println(" try again in 5 seconds");
-            // Wait 5 seconds before retrying
-            delay(5000);
-        }
+        Serial.println("connected");
+        // Once connected, publish an announcement...
+        client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
+        const char *version_string = "System's at version v" TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH) ", we stayin' current.";
+        const char *update_info = "Update server's live! Head to http://" MDNS_HOSTNAME ".local and lock in with your info.";
+        client.publish(topic_status, version_string);
+        client.publish(topic_status, update_info);
+        // ... and resubscribe
+        client.subscribe(topic_command);
+    }
+    else
+    {
+        Serial.print("failed, rc=");
+        Serial.print(client.state());
+        Serial.println(" will try again in 5 seconds");
     }
 }
 
@@ -457,7 +482,14 @@ void setup_webupdater()
         if (!http_server.authenticate(update_username, update_password)) {
             return http_server.requestAuthentication();
         }
-        http_server.send(200, "text/html", custom_html); });
+        http_server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+        http_server.send(200, "text/html", ""); // Send headers first
+        http_server.sendContent_P(index_html_top);
+
+        String version_msg = "v" + String(firmware_version) + " is what this ESP8266 is rockin' right now.";
+        String version_div = "<div id=\"version-status\" style=\"margin-bottom: 1rem; font-style: italic; color: var(--status-color);\">" + version_msg + "</div>";
+        http_server.sendContent(version_div);
+        http_server.sendContent_P(index_html_bottom); });
 
     // Handle the upload
     http_server.on("/update", HTTP_POST, []()
@@ -536,9 +568,12 @@ void loop()
 {
     http_server.handleClient();
     MDNS.update();
-    if (!client.connected())
+    const unsigned long current_millis = millis();
+    if (current_millis - mqtt_reconnect_current_millis > mqtt_reconnect_interval)
     {
-        reconnect();
+        if (!client.connected())
+            reconnect();
+        mqtt_reconnect_current_millis = current_millis;
     }
     client.loop();
 }
