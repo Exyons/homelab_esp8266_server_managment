@@ -114,8 +114,8 @@ const char *index_html_bottom = R"rawliteral(
             xhr.open("POST", "/reboot");
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    alert("Device is rebooting. Page will reload in 15 seconds.");
-                    setTimeout(function() { window.location.reload(); }, 15000);
+                    alert("Device is rebooting. Page will reload in 5 seconds.");
+                    setTimeout(function() { window.location.reload(); }, 5000);
                 } else {
                     alert("Reboot failed.");
                 }
@@ -274,20 +274,6 @@ ESP8266WebServer http_server(80);
 
 unsigned long lastMsg = 0;
 
-void blink_led_fast()
-{
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(100);
-    digitalWrite(LED_BUILTIN, HIGH);
-}
-
-void blink_led_slow()
-{
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(500);
-    digitalWrite(LED_BUILTIN, HIGH);
-}
-
 const int send_magic_packet(const uint16_t port = 7)
 {
     uint8_t payload_buffer[102];
@@ -363,7 +349,9 @@ void callback(char *topic, byte *payload, unsigned int length)
         if (message == "PING")
         {
             client.publish(topic_status, "εつ💦(‿ˠ‿) What's good, fam?");
-            blink_led_fast();
+            digitalWrite(LED_BUILTIN, LOW);
+            delay(100);
+            digitalWrite(LED_BUILTIN, HIGH);
         }
         else if (message == "VERSION")
         {
@@ -490,6 +478,16 @@ void setup_webupdater()
         String version_div = "<div id=\"version-status\" style=\"margin-bottom: 1rem; font-style: italic; color: var(--status-color);\">" + version_msg + "</div>";
         http_server.sendContent(version_div);
         http_server.sendContent_P(index_html_bottom); });
+
+    // Handle reboot
+    http_server.on("/reboot", HTTP_POST, []()
+                   {
+        if(!http_server.authenticate(update_username, update_password)){
+            return http_server.requestAuthentication();
+        } 
+        http_server.send(200, "text/plain", "Bout to restart, hold tight...");
+        delay(1000);
+        ESP.restart(); });
 
     // Handle the upload
     http_server.on("/update", HTTP_POST, []()
