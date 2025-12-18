@@ -7,6 +7,10 @@
 #include <ESP8266mDNS.h>
 #include <Updater.h>
 
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+const char *firmware_version = TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH);
+
 // Web updater setup
 const char *mdns_hostname = MDNS_HOSTNAME;
 const char *update_username = UPDATE_USERNAME;
@@ -329,7 +333,8 @@ void callback(char *topic, byte *payload, unsigned int length)
         if (message == "PING")
         {
             Serial.println("Ping received. Sending Pong.");
-            client.publish(topic_status, "What's good, fam?");
+            client.publish(topic_status, firmware_version);
+            client.publish(topic_status, "εつ💦(‿ˠ‿) What's good, fam?");
             blink_led_fast();
         }
         else if (message == "FORCE_POWER_OFF_WIN_SERVER")
@@ -378,14 +383,25 @@ void callback(char *topic, byte *payload, unsigned int length)
             }
             blink_led_fast();
         }
-        else if (message == "FUCK_YOU"){
-            client.publish(topic_status, "ᶠᶸᶜᵏᵧₒᵤ!𝓷𝓲𝓰𝓰𝓪 (-_•)╦̵̵̿╤─");
+        else if (message == "FUCK_YOU")
+        {
+            client.publish(topic_status, "ᶠᶸᶜᵏᵧₒᵤ!𝓷𝓲𝓰𝓰𝓪 ⎛⎝( ` ᢍ ´ )⎠⎞ᵐᵘʰᵃʰᵃ (-_•)╦̵̵̿╤─");
         }
-        else if (message == "MIDDLE_FINGER") {
-            client.publish(topic_status, "╭∩╮(＾◡＾)╭∩╮");
+        else if (message == "MIDDLE_FINGER")
+        {
+            client.publish(topic_status, "╭∩╮(•̀_·́)╭∩╮");
         }
-        else if (message == "DIDDY") {
-            client.publish(topic_status, "𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
+        else if (message == "DIDDY")
+        {
+            client.publish(topic_status, "(≖‿≖) Heehee, 𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
+        }
+        else if (message = "BITCH")
+        {
+            client.publish(topic_status, "(＾◡＾)っ✂╰⋃╯");
+        }
+        else if (message = "UWU")
+        {
+            client.publish(topic_status, "U⩊U");
         }
         else
         {
