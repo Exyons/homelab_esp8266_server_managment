@@ -292,13 +292,15 @@ struct PulseAction
         digitalWrite(pin, HIGH); // Turn Off initially
     }
 
-    void trigger(unsigned long ms, const char *_update_message, const char *active_message)
+    void trigger(unsigned long ms, const char *init_message, const char *_update_message, const char *active_message)
     {
         if (active)
         {
             client.publish(topic_status, active_message);
             return; // Don't trigger if already running
         }
+
+        client.publish(topic_status, init_message);
 
         // Serial.printf("Triggering %s for %lu ms\n", name, ms);
         digitalWrite(pin, LOW); // Turn On
@@ -357,7 +359,8 @@ void setup_wifi()
     {
         Serial.print(".");
         // Only blink LED for 5 seconds, it is annoying as it keep on blinking if wifi in not on
-        if (i <= 10) {
+        if (i <= 10)
+        {
             digitalWrite(LED_BUILTIN, LOW);
             delay(250);
             digitalWrite(LED_BUILTIN, HIGH);
@@ -365,7 +368,8 @@ void setup_wifi()
             // Incrementing `i` here because it will not overflow
             i++;
         }
-        else delay(500);
+        else
+            delay(500);
     }
 
     // Blink builtin LED fast to show wifi is connected
@@ -413,33 +417,33 @@ void callback(char *topic, byte *payload, unsigned int length)
         }
         else if (message == "FORCE_POWER_OFF_WIN_SERVER")
         {
-            client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Aight, I'm finna shut down win-server for real, it's gotta go.");
             win_server.trigger(
                 5000,
+                "(☞ ͡° ͜ʖ ͡°)☞ Aight, I'm finna shut down win-server for real, it's gotta go.",
                 "ᕙ(•̀ᗜ•́)ᕗ Win-server is out. It's a wrap",
                 "Slow down fam, another message is in flight.");
         }
         else if (message == "FORCE_POWER_OFF_NAS_SERVER")
         {
-            client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Yo, just heads up, I'm force-killing the nas-server right now.");
             nas_server.trigger(
                 5000,
+                "(☞ ͡° ͜ʖ ͡°)☞ Yo, just heads up, I'm force-killing the nas-server right now.",
                 "ᕙ(•̀ᗜ•́)ᕗ Shut down nas-server for real, we good.",
                 "One thing at a time, bruh. Wait.");
         }
         else if (message == "POWER_ON_WIN_SERVER")
         {
-            client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Bout to fire up win-server... ▄︻デ۪۞━一💥");
             win_server.trigger(
                 500,
+                "(☞ ͡° ͜ʖ ͡°)☞ Bout to fire up win-server... ▄︻デ۪۞━一💥",
                 "ᕙ(•̀ᗜ•́)ᕗ Win-server's back in the building. We live!",
                 "One thing at a time, bruh. Wait.");
         }
         else if (message == "POWER_ON_NAS_SERVER")
         {
-            client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Bout to get nas-server poppin... ▄︻デ۪۞━一💥");
             nas_server.trigger(
                 500,
+                "(☞ ͡° ͜ʖ ͡°)☞ Bout to get nas-server poppin... ▄︻デ۪۞━一💥",
                 "ᕙ(•̀ᗜ•́)ᕗ NAS-server's back in the mix. We rollin'.",
                 "Slow down fam, another message is in flight.");
         }
