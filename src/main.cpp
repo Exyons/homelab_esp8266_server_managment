@@ -272,6 +272,53 @@ WiFiClientSecure espClient;
 PubSubClient client(espClient);
 ESP8266WebServer http_server(80);
 
+struct PulseAction
+{
+    unsigned int pin;
+    unsigned long timer;
+    unsigned long duration;
+    bool active;
+    const char *name; // Just for logging
+    const char *update_message;
+
+    // For this board HIGH means LOW and vice-versa
+    void init(unsigned int _pin, const char *_name)
+    {
+        pin = _pin;
+        name = _name;
+        timer = 0;
+        active = false;
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, HIGH); // Turn Off initially
+    }
+
+    void trigger(unsigned long ms, const char *_update_message)
+    {
+        if (active)
+            return; // Don't trigger if already running
+
+        Serial.printf("Triggering %s for %lu ms\n", name, ms);
+        digitalWrite(pin, LOW); // Turn On
+        timer = millis();
+        duration = ms;
+        active = true;
+        update_message = _update_message;
+    }
+
+    void update()
+    {
+        if (active && (millis() - timer) >= duration)
+        {
+            digitalWrite(pin, HIGH); // Turn Off
+            active = false;
+            client.publish(topic_status, update_message);
+        }
+    }
+};
+
+PulseAction win_server;
+PulseAction nas_server;
+
 const int send_magic_packet(const uint16_t port = 7)
 {
     uint8_t payload_buffer[102];
@@ -311,7 +358,7 @@ void setup_wifi()
         delay(250);
     }
 
-    // Blink builyin LED fast to show wifi is connected
+    // Blink builtin LED fast to show wifi is connected
     for (int i = 0; i < 2; i++)
     {
         digitalWrite(LED_BUILTIN, LOW);
@@ -358,35 +405,39 @@ void callback(char *topic, byte *payload, unsigned int length)
         }
         else if (message == "FORCE_POWER_OFF_WIN_SERVER")
         {
+            if (win_server.active) {
+                client.publish(topic_status, "Slow down fam, another message is in flight.");
+                return;
+            }
             client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Aight, I'm finna shut down win-server for real, it's gotta go.");
-            digitalWrite(POWER_PIN_WIN_SERVER, LOW);
-            delay(5000);
-            digitalWrite(POWER_PIN_WIN_SERVER, HIGH);
-            client.publish(topic_status, "ᕙ(•̀ ᗜ •́)ᕗ We good.");
+            win_server.trigger(5000, "ᕙ(•̀ᗜ•́)ᕗ Win-server is out. It's a wrap");
         }
         else if (message == "FORCE_POWER_OFF_NAS_SERVER")
         {
+            if (nas_server.active) {
+                client.publish(topic_status, "One thing at a time, bruh. Wait.");
+                return;
+            }
             client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Yo, just heads up, I'm force-killing the nas-server right now.");
-            digitalWrite(POWER_PIN_NAS_SERVER, LOW);
-            delay(5000);
-            digitalWrite(POWER_PIN_NAS_SERVER, HIGH);
-            client.publish(topic_status, "ᕙ(•̀ ᗜ •́)ᕗ Bet.");
+            nas_server.trigger(5000, "ᕙ(•̀ᗜ•́)ᕗ Shut down nas-server for real, we good.");
         }
         else if (message == "POWER_ON_WIN_SERVER")
         {
+            if (win_server.active) {
+                client.publish(topic_status, "One thing at a time, bruh. Wait.");
+                return;
+            }
             client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Bout to fire up win-server... ▄︻デ۪۞━一💥");
-            digitalWrite(POWER_PIN_WIN_SERVER, LOW);
-            delay(500);
-            digitalWrite(POWER_PIN_WIN_SERVER, HIGH);
-            client.publish(topic_status, "ᕙ(•̀ ᗜ •́)ᕗ Say less.");
+            win_server.trigger(500, "ᕙ(•̀ᗜ•́)ᕗ Win-server's back in the building. We live!");
         }
         else if (message == "POWER_ON_NAS_SERVER")
         {
+            if (nas_server.active) {
+                client.publish(topic_status, "Slow down fam, another message is in flight.");
+                return;
+            }
             client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Bout to get nas-server poppin... ▄︻デ۪۞━一💥");
-            digitalWrite(POWER_PIN_NAS_SERVER, LOW);
-            delay(500);
-            digitalWrite(POWER_PIN_NAS_SERVER, HIGH);
-            client.publish(topic_status, "ᕙ(•̀ ᗜ •́)ᕗ It's a wrap.");
+            nas_server.trigger(500, "ᕙ(•̀ᗜ•́)ᕗ NAS-server's back in the mix. We rollin'.");
         }
         else if (message == "MAGIC_WAKE_NAS")
         {
@@ -403,9 +454,9 @@ void callback(char *topic, byte *payload, unsigned int length)
         else if (message == "FUCK_YOU")
         {
             client.publish(topic_status, "ᶠᶸᶜᵏᵧₒᵤ!𝓷𝓲𝓰𝓰𝓪");
-            delay(20);
+            delay(100);
             client.publish(topic_status, "⎛⎝(`ᢍ´)⎠⎞ᵐᵘʰᵃʰᵃ");
-            delay(20);
+            delay(100);
             client.publish(topic_status, "(-_•)╦̵̵̿╤─");
         }
         else if (message == "MIDDLE_FINGER")
@@ -415,7 +466,7 @@ void callback(char *topic, byte *payload, unsigned int length)
         else if (message == "DIDDY")
         {
             client.publish(topic_status, "(≖‿≖) Heehee");
-            delay(25);
+            delay(100);
             client.publish(topic_status, "𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
         }
         else if (message == "BITCH")
@@ -454,7 +505,7 @@ void reconnect()
     {
         Serial.print("failed, rc=");
         Serial.print(client.state());
-        Serial.println(" will try again in 5 seconds");
+        Serial.printf(" will try again in %0.2f seconds", static_cast<double>(mqtt_reconnect_interval/1000));
     }
 }
 
@@ -538,11 +589,8 @@ void setup_webupdater()
 
 void setup()
 {
-    pinMode(POWER_PIN_NAS_SERVER, OUTPUT);
-    digitalWrite(POWER_PIN_NAS_SERVER, HIGH); // Start with HIGH because for this board HIGH means LOW and vice-versa
-
-    pinMode(POWER_PIN_WIN_SERVER, OUTPUT);
-    digitalWrite(POWER_PIN_WIN_SERVER, HIGH);
+    win_server.init(POWER_PIN_WIN_SERVER, "win-server");
+    nas_server.init(POWER_PIN_NAS_SERVER, "nas-server");
 
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
@@ -571,4 +619,6 @@ void loop()
         mqtt_reconnect_current_millis = current_millis;
     }
     client.loop();
+    win_server.update();
+    nas_server.update();
 }
