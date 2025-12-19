@@ -16,5 +16,5 @@ build_flags =
     -D UPDATE_PASSWORD=\"YOUR_UPDATE_PASSWORD\"
     -D VERSION_MAJOR=1
     -D VERSION_MINOR=3
-    -D VERSION_PATCH=2
+    -D VERSION_PATCH=3
 extra_scripts = post:create_release.py
