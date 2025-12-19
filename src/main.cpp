@@ -272,8 +272,6 @@ WiFiClientSecure espClient;
 PubSubClient client(espClient);
 ESP8266WebServer http_server(80);
 
-unsigned long lastMsg = 0;
-
 const int send_magic_packet(const uint16_t port = 7)
 {
     uint8_t payload_buffer[102];
@@ -450,7 +448,7 @@ void reconnect()
         client.publish(topic_status, version_string);
         client.publish(topic_status, update_info);
         // ... and resubscribe
-        // client.subscribe(topic_command);
+        client.subscribe(topic_command);
     }
     else
     {
