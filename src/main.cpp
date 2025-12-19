@@ -485,6 +485,18 @@ void callback(char *topic, byte *payload, unsigned int length)
         {
             client.publish(topic_status, "U⩊U");
         }
+        else if (message == "REBOOT")
+        {
+            client.publish(topic_status, "Bout to restart, hold tight...");
+            delay(500);
+            ESP.restart();
+        }
+        else if (message == "RESET")
+        {
+            client.publish(topic_status, "Starting fresh, hold your horses.");
+            delay(500);
+            ESP.reset();
+        }
         else
         {
             client.publish(topic_status, "¯\\_(ツ)_/¯ Whatchu mean? I don't know that one.");
