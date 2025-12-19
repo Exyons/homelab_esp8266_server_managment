@@ -292,12 +292,15 @@ struct PulseAction
         digitalWrite(pin, HIGH); // Turn Off initially
     }
 
-    void trigger(unsigned long ms, const char *_update_message)
+    void trigger(unsigned long ms, const char *_update_message, const char *active_message)
     {
         if (active)
+        {
+            client.publish(topic_status, active_message);
             return; // Don't trigger if already running
+        }
 
-        Serial.printf("Triggering %s for %lu ms\n", name, ms);
+        // Serial.printf("Triggering %s for %lu ms\n", name, ms);
         digitalWrite(pin, LOW); // Turn On
         timer = millis();
         duration = ms;
@@ -405,39 +408,35 @@ void callback(char *topic, byte *payload, unsigned int length)
         }
         else if (message == "FORCE_POWER_OFF_WIN_SERVER")
         {
-            if (win_server.active) {
-                client.publish(topic_status, "Slow down fam, another message is in flight.");
-                return;
-            }
             client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Aight, I'm finna shut down win-server for real, it's gotta go.");
-            win_server.trigger(5000, "ᕙ(•̀ᗜ•́)ᕗ Win-server is out. It's a wrap");
+            win_server.trigger(
+                5000,
+                "ᕙ(•̀ᗜ•́)ᕗ Win-server is out. It's a wrap",
+                "Slow down fam, another message is in flight.");
         }
         else if (message == "FORCE_POWER_OFF_NAS_SERVER")
         {
-            if (nas_server.active) {
-                client.publish(topic_status, "One thing at a time, bruh. Wait.");
-                return;
-            }
             client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Yo, just heads up, I'm force-killing the nas-server right now.");
-            nas_server.trigger(5000, "ᕙ(•̀ᗜ•́)ᕗ Shut down nas-server for real, we good.");
+            nas_server.trigger(
+                5000,
+                "ᕙ(•̀ᗜ•́)ᕗ Shut down nas-server for real, we good.",
+                "One thing at a time, bruh. Wait.");
         }
         else if (message == "POWER_ON_WIN_SERVER")
         {
-            if (win_server.active) {
-                client.publish(topic_status, "One thing at a time, bruh. Wait.");
-                return;
-            }
             client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Bout to fire up win-server... ▄︻デ۪۞━一💥");
-            win_server.trigger(500, "ᕙ(•̀ᗜ•́)ᕗ Win-server's back in the building. We live!");
+            win_server.trigger(
+                500,
+                "ᕙ(•̀ᗜ•́)ᕗ Win-server's back in the building. We live!",
+                "One thing at a time, bruh. Wait.");
         }
         else if (message == "POWER_ON_NAS_SERVER")
         {
-            if (nas_server.active) {
-                client.publish(topic_status, "Slow down fam, another message is in flight.");
-                return;
-            }
             client.publish(topic_status, "(☞ ͡° ͜ʖ ͡°)☞ Bout to get nas-server poppin... ▄︻デ۪۞━一💥");
-            nas_server.trigger(500, "ᕙ(•̀ᗜ•́)ᕗ NAS-server's back in the mix. We rollin'.");
+            nas_server.trigger(
+                500,
+                "ᕙ(•̀ᗜ•́)ᕗ NAS-server's back in the mix. We rollin'.",
+                "Slow down fam, another message is in flight.");
         }
         else if (message == "MAGIC_WAKE_NAS")
         {
@@ -505,7 +504,7 @@ void reconnect()
     {
         Serial.print("failed, rc=");
         Serial.print(client.state());
-        Serial.printf(" will try again in %0.2f seconds", static_cast<double>(mqtt_reconnect_interval/1000));
+        Serial.printf(" will try again in %0.2f seconds", static_cast<double>(mqtt_reconnect_interval / 1000));
     }
 }
 
@@ -534,7 +533,7 @@ void setup_webupdater()
         if(!http_server.authenticate(update_username, update_password)){
             return http_server.requestAuthentication();
         } 
-        http_server.send(200, "text/plain", "Bout to restart, hold tight...");
+        http_server.send(200, "text/plain");
         delay(1000);
         ESP.restart(); });
 
