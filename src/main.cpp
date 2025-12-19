@@ -352,23 +352,31 @@ void setup_wifi()
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
+    uint8 i = 0;
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(250);
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(250);
+        // Only blink LED for 5 seconds, it is annoying as it keep on blinking if wifi in not on
+        if (i <= 10) {
+            digitalWrite(LED_BUILTIN, LOW);
+            delay(250);
+            digitalWrite(LED_BUILTIN, HIGH);
+            delay(250);
+            // Incrementing `i` here because it will not overflow
+            i++;
+        }
+        else delay(500);
     }
 
     // Blink builtin LED fast to show wifi is connected
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
         digitalWrite(LED_BUILTIN, LOW);
         delay(50);
         digitalWrite(LED_BUILTIN, HIGH);
         delay(50);
     }
+
     randomSeed(micros());
 
     Serial.println();
@@ -397,9 +405,6 @@ void callback(char *topic, byte *payload, unsigned int length)
         if (message == "PING")
         {
             client.publish(topic_status, "εつ💦(‿ˠ‿) What's good, fam?");
-            digitalWrite(LED_BUILTIN, LOW);
-            delay(100);
-            digitalWrite(LED_BUILTIN, HIGH);
         }
         else if (message == "VERSION")
         {
