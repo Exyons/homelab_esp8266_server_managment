@@ -3,7 +3,9 @@ platform = espressif8266
 board = nodemcuv2
 framework = arduino
 monitor_speed = 115200
-lib_deps = knolleary/PubSubClient@^2.8
+lib_deps = 
+	knolleary/PubSubClient@^2.8
+	bblanchon/ArduinoJson@^7.4.2
 build_flags = 
     -D WIFI_SSID=\"YOUR_SSID\"
     -D WIFI_PASSWORD=\"YOUR_PASS\"
@@ -15,6 +17,7 @@ build_flags =
     -D UPDATE_USERNAME=\"YOUR_UPDATE_USER\"
     -D UPDATE_PASSWORD=\"YOUR_UPDATE_PASSWORD\"
     -D VERSION_MAJOR=1
-    -D VERSION_MINOR=4
+    -D VERSION_MINOR=5
     -D VERSION_PATCH=0
+board_build.filesystem = littlefs
 extra_scripts = post:create_release.py
