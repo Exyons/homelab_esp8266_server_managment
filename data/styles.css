@@ -1,144 +1,144 @@
+/* Custom styles not covered by Bootstrap */
 :root {
-  --bg-color: #f4f4f9;
-  --card-bg: #ffffff;
-  --text-color: #333333;
-  --border-color: #cccccc;
-  --btn-bg: #7678ed;
-  --btn-hover: #5152a4;
-  --status-color: #555555;
-  --hover-border: #007bff;
+    --btn-custom-color: #9d4edd; /* Light mode color */
+    --upload-area-hover: var(--bs-primary); /* Default light mode hover */
+    --btn-icon-color: #212529; /* Light mode icon color */
+    --btn-icon-hover: #000;
+    --glass-bg: rgba(255, 255, 255, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.3);
 }
-[data-theme="dark"] {
-  --bg-color: #121212;
-  --card-bg: #1e1e1e;
-  --text-color: #e0e0e0;
-  --border-color: #444444;
-  --btn-bg: #7678ed;
-  --btn-hover: #5152a4;
-  --status-color: #aaaaaa;
-  --hover-border: #0069d9;
+
+[data-bs-theme="dark"] {
+    --btn-custom-color: #c77dff; /* Dark mode color */
+    --upload-area-hover: #abc4ff; /* Dark mode hover color */
+    --btn-icon-color: #f8f9fa; /* Dark mode icon color */
+    --btn-icon-hover: #fff;
+    --glass-bg: rgba(30, 30, 30, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.1);
 }
+
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0;
-  transition: background-color 0.3s, color 0.3s;
+    background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+    background-attachment: fixed;
 }
-.container {
-  background: var(--card-bg);
-  border: 0.11rem solid;
-  border-color: #fcf6bd;
-  margin-top: 100px;
-  margin-bottom: 100px;
-  height: fit-content;
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
-  text-align: center;
-  transition: background-color 0.3s;
+
+[data-bs-theme="dark"] body {
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
 }
-h2 {
-  margin-bottom: 1.5rem;
-  color: var(--text-color);
-}
-#version-status {
-  margin-bottom: 1rem;
-  font-style: italic;
-  color: var(--status-color);
-}
-.file-upload {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-  margin-bottom: 1rem;
-}
-input[type="file"] {
-  display: none;
-}
-.custom-file-upload {
-  border: 2px dashed var(--border-color);
-  display: inline-block;
-  padding: 10px 12px;
-  cursor: pointer;
-  width: 100%;
-  box-sizing: border-box;
-  border-radius: 5px;
-  color: var(--text-color);
-  transition: all 0.3s;
-}
-.custom-file-upload:hover {
-  border-color: var(--hover-border);
-  color: var(--hover-border);
-}
-.btn {
-  background-color: var(--btn-bg);
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  width: 100%;
-  transition: background 0.3s;
-}
-.btn:hover {
-  background-color: var(--btn-hover);
-}
-.btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-.btn-danger {
-  background-color: #dc3545;
-  margin-top: 1rem;
-}
-.btn-danger:hover {
-  background-color: #c82333;
-}
-#btn-info{
-    color: #80ed99;
-    background-color: #333333;
-    border: 0.11rem solid #80ed99;
-}
-#btn-info:hover{
-    background-color: #312b9d;
-}
-#progress-container {
-  width: 100%;
-  background-color: var(--border-color);
-  border-radius: 5px;
-  margin-top: 1rem;
-  display: none;
-  overflow: hidden;
-}
-#progress-bar {
-  width: 0%;
-  height: 20px;
-  background-color: #28a745;
-  text-align: center;
-  line-height: 20px;
-  color: white;
-  transition: width 0.1s ease;
-}
-#status {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  color: var(--status-color);
-}
+
 .theme-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  cursor: pointer;
-  font-size: 24px;
-  user-select: none;
+    cursor: pointer;
+    z-index: 1050; /* Ensure it's above other content */
+    user-select: none;
+    font-size: 1.5em;
 }
-#esp-info-table {
-  margin-top: 20px;
+
+.updater-card {
+    max-width: 500px;
+    margin: 0 auto; /* Center it */
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 1.5rem !important;
+}
+
+.card-title {
+    font-size: 1.75rem; /* Fixed font size */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Old style file upload */
+.file-upload {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.custom-file-upload {
+    border: 2px dashed var(--bs-border-color);
+    display: inline-block;
+    padding: 10px 25px;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 50rem;
+    color: var(--bs-body-color);
+    transition: all 0.3s;
+}
+
+.custom-file-upload:hover {
+    border-color: var(--upload-area-hover);
+    color: var(--upload-area-hover);
+}
+
+/* Increase icon thickness */
+.bi::before {
+    -webkit-text-stroke: 0.5px currentColor;
+}
+
+.progress-bar {
+    height: 100%;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+#esp-info-table td, #esp-info-table th {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+.btn-update-custom {
+    color: var(--btn-custom-color);
+    border-color: var(--btn-custom-color);
+    border: 2px solid;
+}
+
+.btn-update-custom:hover {
+    background-color: var(--btn-custom-color);
+    border-color: var(--btn-custom-color);
+    color: #fff; /* White text on hover for better contrast */
+}
+
+.btn-icon-only {
+    background: transparent !important;
+    border: none !important;
+    color: var(--btn-icon-color) !important;
+    font-size: 1.5rem;
+    padding: 0.25rem;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.btn-icon-only:hover {
+    color: var(--btn-icon-hover) !important;
+    transform: scale(1.1);
+}
+
+.btn-icon-only .bi::before {
+    -webkit-text-stroke: 1px currentColor; /* Extra thickness for these icons */
+}
+
+/* Background blob for better glass effect */
+.bg-blob {
+    position: fixed;
+    width: 300px;
+    height: 300px;
+    background: #7b2cbf;
+    filter: blur(80px);
+    border-radius: 50%;
+    z-index: -1;
+    opacity: 0.2;
+    animation: move 20s infinite alternate;
+}
+
+@keyframes move {
+    from { transform: translate(-10%, -10%); }
+    to { transform: translate(110%, 110%); }
 }

@@ -1,8 +1,8 @@
 function toggleTheme() {
   const html = document.documentElement;
-  const current = html.getAttribute("data-theme");
+  const current = html.getAttribute("data-bs-theme");
   const next = current === "dark" ? "light" : "dark";
-  html.setAttribute("data-theme", next);
+  html.setAttribute("data-bs-theme", next);
   localStorage.setItem("theme", next);
   document.getElementById("theme-toggle").innerText =
     next === "dark" ? "☀️" : "🌙";
@@ -11,13 +11,20 @@ function toggleTheme() {
 // Initialize Theme
 (function () {
   const saved = localStorage.getItem("theme") || "light";
-  document.documentElement.setAttribute("data-theme", saved);
+  document.documentElement.setAttribute("data-bs-theme", saved);
   document.getElementById("theme-toggle").innerText =
     saved === "dark" ? "☀️" : "🌙";
 })();
 
-// Fetch Version on Load
+// Initialize Bootstrap Tooltips & Fetch Version
 window.onload = function () {
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
+    const t = new bootstrap.Tooltip(tooltipTriggerEl);
+    tooltipTriggerEl.addEventListener('click', () => t.hide());
+    return t;
+  });
+  
   fetchVersion();
 };
 
@@ -30,7 +37,7 @@ function fetchVersion() {
         var json = JSON.parse(xhr.response);
         if (json.firmware_version) {
           document.getElementById("version-status").innerText =
-            "v" + json.firmware_version + " is what this ESP8266 is rockin' right now.";
+            json.firmware_version + " is what this ESP8266 is rockin' right now.";
         }
       } catch (e) {
         console.error("JSON Error");
@@ -43,22 +50,27 @@ function fetchVersion() {
 function updateFileName() {
   const input = document.getElementById("file-input");
   const label = document.getElementById("file-label");
-  const upload_btn = document.getElementById("upload-btn");
+  // I have moved the text into a span with JS acceptable variabl name
+  // Now no need to select it using document.getElementById
+  // Its id is `upload_btn_text`
   if (input.files && input.files.length > 0) {
     const filename = input.files[0].name;
     label.textContent = filename;
     if (filename.includes("filesystem")) {
-      upload_btn.textContent = "Update Nigga's Filesystem";
+      upload_btn_text.textContent = "Update Nigga's Filesystem";
     } else {
-      upload_btn.textContent = "Update Nigga's Firmware";
+      upload_btn_text.textContent = "Update Nigga's Firmware";
     }
   } else {
     label.textContent = "Grab that .bin real quick.";
+    upload_btn.textContent = "Update Nigga"; 
   }
 }
 
 function fetchESPInfo() {
   const esp_info_table = document.getElementById("esp-info-table");
+  const info_container = document.getElementById("info-container");
+  
   let xhr = new XMLHttpRequest();
   xhr.open("GET", "/info");
   xhr.onload = function () {
@@ -77,11 +89,18 @@ function fetchESPInfo() {
         table_row.append(table_cell_value);
         esp_info_table.append(table_row);
       }
+      // Show container
+      info_container.style.display = "block";
     } else {
       esp_info_table.innerHTML = "<h3>Error Fetching Info</h3>";
+      info_container.style.display = "block";
     }
   };
   xhr.send();
+}
+
+function hideESPInfo() {
+  document.getElementById("info-container").style.display = "none";
 }
 
 function rebootDevice() {
@@ -119,7 +138,7 @@ function uploadFirmware() {
   document.getElementById("upload-btn").disabled = true;
   document.getElementById("reboot-btn").disabled = true;
   document.getElementById("file-input").disabled = true;
-  document.getElementById("info-btn").disabled = true;
+  document.getElementById("btn-info").disabled = true;
   document.getElementById("progress-container").style.display = "block";
   document.getElementById("status").innerText = "Uploading...";
 
@@ -182,7 +201,7 @@ function uploadFirmware() {
       document.getElementById("upload-btn").disabled = false;
       document.getElementById("reboot-btn").disabled = false;
       document.getElementById("file-input").disabled = false;
-      document.getElementById("info-btn").disabled = false;
+      document.getElementById("btn-info").disabled = false;
     }
   };
 
@@ -192,7 +211,7 @@ function uploadFirmware() {
     document.getElementById("upload-btn").disabled = false;
     document.getElementById("reboot-btn").disabled = false;
     document.getElementById("file-input").disabled = false;
-    document.getElementById("info-btn").disabled = false;
+    document.getElementById("btn-info").disabled = false;
   };
 
   xhr.open("POST", "/update");
