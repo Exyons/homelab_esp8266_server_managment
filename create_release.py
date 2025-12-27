@@ -39,12 +39,12 @@ def create_release(source, target, env):
     release_name = os.path.join(
         dest_path, f"nigga_{bin_type}_v{firmware_version}.bin"
     )
-    # release_name_verbose = os.path.join(
-    #     dest_path, f"nigga_{bin_type}_v{firmware_version}_{timestamp}.bin"
-    # )
+    release_name_verbose = os.path.join(
+        dest_path, f"nigga_{bin_type}_v{firmware_version}_{timestamp}.bin"
+    )
     
     shutil.copy2(bin_path, release_name)
-    # shutil.copy2(bin_path, release_name_verbose)
+    shutil.copy2(bin_path, release_name_verbose)
     print(f"[{bin_type}] Copied to {release_name}")
 
 

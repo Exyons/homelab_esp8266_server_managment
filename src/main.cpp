@@ -319,7 +319,28 @@ void setup_webupdater()
         }
         File file = LittleFS.open("/index.html", "r");
         if (!file) {
-            http_server.send(500, "text/plain", "Index file missing. Please upload filesystem.");
+            // Failsafe HTML
+            const char* failsafe_html = 
+                "<!DOCTYPE html><html><head><title>Failsafe Mode</title>"
+                "<meta name='viewport' content='width=device-width, initial-scale=1.0'></head>"
+                "<body><h1>&#9888; Failsafe Mode</h1>"
+                "<p><b>Critical Error:</b> <code>index.html</code> missing.</p>"
+                "<p>The filesystem appears to be broken. Use the forms below to recover.</p>"
+                "<hr>"
+                "<h3>Option 1: Restore Filesystem (Recommended)</h3>"
+                "<p>Select the filesystem binary (must contain <code>nigga_filesystem</code> in name).</p>"
+                "<form method='POST' action='/update' enctype='multipart/form-data'>"
+                "<input type='file' name='update' accept='.bin'><br><br>"
+                "<input type='submit' value='Upload Filesystem'>"
+                "</form>"
+                "<hr>"
+                "<h3>Option 2: Update Firmware</h3>"
+                "<form method='POST' action='/update' enctype='multipart/form-data'>"
+                "<input type='file' name='update' accept='.bin'><br><br>"
+                "<input type='submit' value='Upload Firmware'>"
+                "</form>"
+                "</body></html>";
+            http_server.send(200, "text/html", failsafe_html);
             return;
         }
         http_server.streamFile(file, "text/html");
