@@ -1,4 +1,5 @@
 #include "config_store.h"
+#include <Arduino.h>
 #include <EEPROM.h>
 #include <string.h>
 
@@ -19,22 +20,29 @@ void config_store_begin() {
 
 Config& config() { return g_config; }
 
-bool config_store_save() {
+bool config_store_save_from(const Config& candidate) {
     uint8_t blob[CONFIG_BLOB_SIZE];
-    config_serialize(g_config, blob);
+    config_serialize(candidate, blob);
     for (size_t i = 0; i < CONFIG_BLOB_SIZE; i++) {
         EEPROM.write(i, blob[i]);
     }
-    const bool ok = EEPROM.commit();
-    if (ok) g_valid = true;
-    return ok;
+    if (!EEPROM.commit()) return false;   // live config left untouched
+    if (&candidate != &g_config) g_config = candidate;
+    g_valid = true;
+    return true;
 }
+
+bool config_store_save() { return config_store_save_from(g_config); }
 
 void config_store_factory_reset() {
     for (size_t i = 0; i < CONFIG_BLOB_SIZE; i++) {
         EEPROM.write(i, 0x00);
     }
-    EEPROM.commit();
+    // Nothing downstream can act on a failure here — the caller reboots — but
+    // an unlogged failed erase would look exactly like a successful one.
+    if (!EEPROM.commit()) {
+        Serial.println(F("EEPROM erase failed; stored config may survive reset."));
+    }
     config_set_defaults(g_config);
     g_valid = false;
 }

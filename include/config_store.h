@@ -11,6 +11,10 @@ Config& config();
 // Serialises the live config to EEPROM. Returns EEPROM.commit()'s result.
 bool config_store_save();
 
+// Serialises the supplied config to EEPROM and, only on a successful commit,
+// adopts it as the live config. Leaves the live config untouched on failure.
+bool config_store_save_from(const Config& candidate);
+
 // Zeroes the EEPROM blob and resets the live config to defaults.
 void config_store_factory_reset();
 
