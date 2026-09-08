@@ -2,12 +2,11 @@
 #include "config_store.h"
 #include "net_manager.h"
 #include "net_util.h"
+#include "version.h"
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <WiFiUdp.h>
 #include <PubSubClient.h>
-
-extern String firmware_version;
 
 static WiFiUDP          udp;
 static WiFiClientSecure espClient;
