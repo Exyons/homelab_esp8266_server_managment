@@ -1,5 +1,6 @@
 #include "web_server.h"
 #include <Arduino.h>
+#include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <Updater.h>
@@ -17,6 +18,11 @@ static ESP8266WebServer http_server(80);
 // without re-checking (or re-responding) per chunk.
 static bool update_started    = false;
 static bool update_authorized = false;
+// Latches a failed Update.begin(). Without it the next WRITE chunk would
+// re-enter the detection branch and run image_detect() on mid-file bytes,
+// which are essentially never 0xE9, so it would pick U_FS and write the tail
+// of a firmware image over LittleFS — then report success.
+static bool update_failed     = false;
 
 bool web_require_auth() {
     const char* user = config_store_is_valid() ? config().upd_user : "admin";
@@ -96,8 +102,10 @@ void web_begin()
         if (!web_require_auth()) return;
         File file = LittleFS.open("/index.html", "r");
         if (!file) {
-            // Failsafe HTML
-            const char* failsafe_html =
+            // Failsafe HTML. PROGMEM + send_P keeps it in flash: a plain string
+            // literal on the ESP8266 is copied into DRAM at startup, and this
+            // page is ~1.6 KB that is only ever needed when LittleFS is empty.
+            static const char failsafe_html[] PROGMEM =
                 "<!DOCTYPE html><html><head><title>Setup</title>"
                 "<meta name='viewport' content='width=device-width,initial-scale=1'>"
                 "<style>body{font-family:sans-serif;max-width:26rem;margin:2rem auto;padding:0 1rem}"
@@ -112,21 +120,39 @@ void web_begin()
                 "<label>MQTT User</label><input id=u>"
                 "<label>MQTT Password</label><input id=m type=password>"
                 "<label>Device ID</label><input id=d>"
+                "<label>Updater Username</label><input id=n "
+                "placeholder='blank = keep current'>"
+                "<label>Updater Password</label><input id=w type=password "
+                "placeholder='blank = keep current'>"
+                "<p><small>The updater login is <b>admin</b>/<b>admin</b> until you "
+                "change it here. Do that before leaving the setup AP.</small></p>"
                 "<button onclick=\"save()\">Save &amp; Reboot</button>"
                 "<hr><h3>Upload Firmware or Filesystem</h3>"
                 "<form method='POST' action='/update' enctype='multipart/form-data'>"
                 "<input type='file' name='update' accept='.bin'>"
                 "<button type='submit'>Upload</button></form>"
+                "<hr><h3>Recovery</h3>"
+                "<p><small>Erases the stored configuration and reboots into the "
+                "setup AP.</small></p>"
+                "<button onclick=\"fr()\">Factory Reset</button>"
                 "<script>function save(){"
                 "var b={wifi_ssid:s.value,wifi_psk:p.value,mqtt_host:h.value,"
                 "mqtt_port:parseInt(o.value||'8883'),mqtt_user:u.value,"
                 "mqtt_pass:m.value,device_id:d.value};"
+                // upd_user goes through copy_field, which would happily store an
+                // empty string, so omit the key when the box is blank; upd_pass
+                // goes through copy_secret, which already treats empty as keep.
+                "if(n.value)b.upd_user=n.value;if(w.value)b.upd_pass=w.value;"
                 "fetch('/config',{method:'POST',headers:{'Content-Type':'application/json'},"
                 "body:JSON.stringify(b)}).then(r=>r.json()).then(j=>{"
                 "document.body.innerHTML=j.ok?'<h2>Saved. Rebooting...</h2>':"
-                "'<h2>Error: '+(j.error||'unknown')+'</h2>';});}</script>"
+                "'<h2>Error: '+(j.error||'unknown')+'</h2>';});}"
+                "function fr(){if(!confirm('Erase all settings and reboot?'))return;"
+                "fetch('/factory_reset',{method:'POST',"
+                "headers:{'Content-Type':'application/json'},body:'{}'});"
+                "document.body.innerHTML='<h2>Factory reset. Rebooting...</h2>';}</script>"
                 "</body></html>";
-            http_server.send(200, "text/html", failsafe_html);
+            http_server.send_P(200, PSTR("text/html"), failsafe_html);
             return;
         }
         http_server.streamFile(file, "text/html");
@@ -195,8 +221,7 @@ void web_begin()
             http_server.send(400, "application/json", "{\"error\":\"malformed json\"}");
             return;
         }
-        Config& c = config();
-        Config tmp = c;                 // plain struct copy is safe: config_set_defaults and
+        Config tmp = config();          // plain struct copy is safe: config_set_defaults and
                                          // config_deserialize both memset, so padding is zeroed
         copy_field (tmp.wifi_ssid, sizeof(tmp.wifi_ssid), doc["wifi_ssid"]);
         copy_secret(tmp.wifi_psk,  sizeof(tmp.wifi_psk),  doc["wifi_psk"]);
@@ -214,10 +239,10 @@ void web_begin()
             return;                     // live config untouched
         }
 
-        const Config orig = c;          // snapshot so a failed EEPROM write can be undone
-        c = tmp;                        // commit to RAM only after validation passes
-        if (!config_store_save()) {
-            c = orig;                   // keep RAM consistent with what's actually persisted
+        // Adopts tmp as the live config only after the EEPROM commit succeeds,
+        // so no rollback snapshot is needed: on failure the live config is
+        // still byte-identical to what is persisted.
+        if (!config_store_save_from(tmp)) {
             http_server.send(500, "application/json", "{\"error\":\"eeprom write failed\"}");
             return;
         }
@@ -295,10 +320,11 @@ void web_begin()
 
         if (upload.status == UPLOAD_FILE_START) {
             update_started    = false;
+            update_failed     = false;
             update_authorized = post_authorized();
             Serial.printf("Update: %s\n", upload.filename.c_str());
         }
-        if (!update_authorized) return;
+        if (!update_authorized || update_failed) return;
 
         if (upload.status == UPLOAD_FILE_WRITE) {
             if (!update_started) {
@@ -308,7 +334,11 @@ void web_begin()
                                      ? ((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)
                                      : fs_size_for_update();
                 Serial.printf("Target: %s\n", type == IMAGE_FIRMWARE ? "Firmware" : "Filesystem");
-                if (!Update.begin(size, command)) { Update.printError(Serial); return; }
+                if (!Update.begin(size, command)) {
+                    Update.printError(Serial);
+                    update_failed = true;   // never re-detect on mid-file bytes
+                    return;
+                }
                 update_started = true;
             }
             if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
@@ -322,6 +352,21 @@ void web_begin()
     // Handle 404 and Static Files (JS/CSS)
     http_server.onNotFound([]()
                            {
+        // Captive portal. The DNS server already points every name at the
+        // softAP address, but a portal probe (captive.apple.com/hotspot-detect,
+        // /generate_204, ...) still lands on an unknown path. Without this it
+        // would get a Basic-auth prompt and then a 404 instead of the setup
+        // page. Deliberately ahead of the auth check: a 302 to the device's
+        // own root discloses nothing that the SSID has not already disclosed.
+        // In AP mode every real asset has an explicit route, so nothing that
+        // matters is lost by redirecting the rest.
+        if (net_is_ap()) {
+            http_server.sendHeader("Location",
+                                   String("http://") + WiFi.softAPIP().toString() + "/");
+            http_server.send(302, "text/plain", "");
+            return;
+        }
+
         if (!web_require_auth()) return;
 
         String path = http_server.uri();
