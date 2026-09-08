@@ -1,8 +1,4 @@
-#include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <PubSubClient.h>
-#include <WiFiClientSecure.h>
-#include <WiFiUdp.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <Updater.h>
@@ -11,206 +7,26 @@
 #include "pulse_action.h"
 #include "config_store.h"
 #include "net_manager.h"
+#include "mqtt_client.h"
 
 // #define STRINGIFY(x) #x
 // #define TOSTRING(x) STRINGIFY(x)
 // const char *firmware_version = TOSTRING(VERSION_MAJOR) "." TOSTRING(VERSION_MINOR) "." TOSTRING(VERSION_PATCH);
 String firmware_version = String(VERSION_MAJOR) + "." + String(VERSION_MINOR) + "." + String(VERSION_PATCH);
 
-const unsigned long mqtt_reconnect_interval = 5000;
-unsigned long mqtt_reconnect_current_millis = 0;
-
 // Web updater setup
 String mdns_hostname = MDNS_HOSTNAME;
 const char *update_username = UPDATE_USERNAME;
 const char *update_password = UPDATE_PASSWORD;
 
-// MQTT Broker details
-const char *mqtt_server = MQTT_SERVER;
-const int mqtt_port = 8883;
-const char *client_id = MQTT_DEVICE_ID; // Must be unique on the broker
-const char *mqtt_user = MQTT_USERNAME;
-const char *mqtt_password = MQTT_PASSWORD;
-
-// Topics
-const char *topic_command = "osiris/esp8266/command";
-const char *topic_status = "osiris/esp8266/status";
-
 // Pin definitions
 const int POWER_PIN_WIN_SERVER = 14; // GPIO14 (D5 on board)
 const int POWER_PIN_NAS_SERVER = 5;  // GPIO5  (D1 on board)
 
-IPAddress BROADCAST_IP = IPAddress(10, 10, 10, 255);
-const uint8_t SERVER_MAC[6] = {0xC8, 0xD3, 0xFF, 0x6E, 0x9E, 0xF2};
-
-WiFiUDP udp;
-WiFiClientSecure espClient;
-PubSubClient client(espClient);
 ESP8266WebServer http_server(80);
 
 PulseAction win_server;
 PulseAction nas_server;
-
-const int send_magic_packet(const uint16_t port = 7)
-{
-    uint8_t payload_buffer[102];
-    for (int i = 0; i < 6; i += 1)
-    {
-        payload_buffer[i] = 0xFF;
-    }
-    for (int i = 6; i < 102; i += 6)
-    {
-        for (int j = 0; j < 6; j++)
-        {
-            payload_buffer[i + j] = SERVER_MAC[j];
-        }
-    }
-    udp.beginPacketMulticast(BROADCAST_IP, port, WiFi.localIP());
-    udp.write(payload_buffer, sizeof(payload_buffer));
-    const int status = udp.endPacket();
-    return status;
-}
-
-void callback(char *topic, byte *payload, unsigned int length)
-{
-    Serial.print("Message arrived [");
-    Serial.print(topic);
-    Serial.print("] ");
-
-    // Convert payload to string for easier comparison
-    String message;
-    for (unsigned int i = 0; i < length; i++)
-    {
-        message += (char)payload[i];
-    }
-    Serial.println(message);
-
-    // Command Handling
-    if (String(topic) == topic_command)
-    {
-        if (message == "PING")
-        {
-            client.publish(topic_status, "εつ💦(‿ˠ‿) What's good, fam?");
-        }
-        else if (message == "VERSION")
-        {
-            String version_info = "We rockin' v" + firmware_version + " right now.";
-            client.publish(topic_status, version_info.c_str());
-        }
-        else if (message == "FORCE_POWER_OFF_WIN_SERVER")
-        {
-            win_server.trigger(
-                5000,
-                "(☞ ͡° ͜ʖ ͡°)☞ Aight, I'm finna shut down win-server for real, it's gotta go.",
-                "ᕙ(•̀ᗜ•́)ᕗ Win-server is out. It's a wrap",
-                "Slow down fam, another message is in flight.");
-        }
-        else if (message == "FORCE_POWER_OFF_NAS_SERVER")
-        {
-            nas_server.trigger(
-                5000,
-                "(☞ ͡° ͜ʖ ͡°)☞ Yo, just heads up, I'm force-killing the nas-server right now.",
-                "ᕙ(•̀ᗜ•́)ᕗ Shut down nas-server for real, we good.",
-                "One thing at a time, bruh. Wait.");
-        }
-        else if (message == "POWER_ON_WIN_SERVER")
-        {
-            win_server.trigger(
-                500,
-                "(☞ ͡° ͜ʖ ͡°)☞ Bout to fire up win-server... ▄︻デ۪۞━一💥",
-                "ᕙ(•̀ᗜ•́)ᕗ Win-server's back in the building. We live!",
-                "One thing at a time, bruh. Wait.");
-        }
-        else if (message == "POWER_ON_NAS_SERVER")
-        {
-            nas_server.trigger(
-                500,
-                "(☞ ͡° ͜ʖ ͡°)☞ Bout to get nas-server poppin... ▄︻デ۪۞━一💥",
-                "ᕙ(•̀ᗜ•́)ᕗ NAS-server's back in the mix. We rollin'.",
-                "Slow down fam, another message is in flight.");
-        }
-        else if (message == "MAGIC_WAKE_NAS")
-        {
-            const int status = send_magic_packet();
-            if (status == 1)
-            {
-                client.publish(topic_status, "(-_•)▄︻テحكـ━一💥 Shot that magic packet right into the NAS, it's finna wake up.");
-            }
-            else
-            {
-                client.publish(topic_status, "(,,>﹏<,,)👉👈 Nah bruh, that magic packet didn't even go through! 😢");
-            }
-        }
-        else if (message == "FUCK_YOU")
-        {
-            client.publish(topic_status, "Fuck You 𝓷𝓲𝓰𝓰𝓪𝓪𝓪𝓪...");
-            delay(100);
-            client.publish(topic_status, "⎛⎝(`ᢍ´)⎠⎞ᵐᵘʰᵃʰᵃ");
-            delay(100);
-            client.publish(topic_status, "(-_•)╦̵̵̿╤─");
-        }
-        else if (message == "MIDDLE_FINGER")
-        {
-            client.publish(topic_status, "╭∩╮(•̀_·́)╭∩╮");
-        }
-        else if (message == "DIDDY")
-        {
-            client.publish(topic_status, "(≖‿≖) Heehee");
-            delay(100);
-            client.publish(topic_status, "𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
-        }
-        else if (message == "BITCH")
-        {
-            client.publish(topic_status, "(＾◡＾)っ✂╰⋃╯");
-        }
-        else if (message == "UWU")
-        {
-            client.publish(topic_status, "U⩊U");
-        }
-        else if (message == "REBOOT")
-        {
-            client.publish(topic_status, "Bout to restart, hold tight...");
-            delay(500);
-            ESP.restart();
-        }
-        else if (message == "RESET")
-        {
-            client.publish(topic_status, "Starting fresh, hold your horses.");
-            delay(500);
-            ESP.reset();
-        }
-        else
-        {
-            client.publish(topic_status, "¯\\_(ツ)_/¯ Whatchu mean? I don't know that one.");
-        }
-    }
-}
-
-void reconnect()
-{
-    // Check if we're connected
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect(client_id, mqtt_user, mqtt_password))
-    {
-        Serial.println("connected");
-        // Once connected, publish an announcement...
-        client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
-        String version_info = "System's at version v" + firmware_version + ", we stayin' current.";
-        String local_ip = WiFi.localIP().toString();
-        String update_url_info = "Update server's live! Head to http://" + mdns_hostname + ".local or http://" + local_ip + " and lock in with your info.";
-        client.publish(topic_status, version_info.c_str());
-        client.publish(topic_status, update_url_info.c_str());
-        // ... and resubscribe
-        client.subscribe(topic_command);
-    }
-    else
-    {
-        Serial.print("failed, rc=");
-        Serial.print(client.state());
-        Serial.printf(" will try again in %0.2f seconds", static_cast<double>(mqtt_reconnect_interval / 1000));
-    }
-}
 
 void setup_webupdater()
 {
@@ -412,14 +228,10 @@ void setup_webupdater()
     MDNS.addService("http", "tcp", 80);
 }
 
-static void publish_status(const char* message) {
-    client.publish(topic_status, message);
-}
-
 void setup()
 {
-    win_server.init(POWER_PIN_WIN_SERVER, "win-server", publish_status);
-    nas_server.init(POWER_PIN_NAS_SERVER, "nas-server", publish_status);
+    win_server.init(POWER_PIN_WIN_SERVER, "win-server", mqtt_publish_status);
+    nas_server.init(POWER_PIN_NAS_SERVER, "nas-server", mqtt_publish_status);
 
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
@@ -443,10 +255,7 @@ void setup()
 
     setup_webupdater();
 
-    espClient.setInsecure();
-
-    client.setServer(mqtt_server, mqtt_port);
-    client.setCallback(callback);
+    mqtt_begin(&win_server, &nas_server);
 }
 
 void loop()
@@ -455,14 +264,7 @@ void loop()
 
     http_server.handleClient();
     MDNS.update();
-    const unsigned long current_millis = millis();
-    if (current_millis - mqtt_reconnect_current_millis > mqtt_reconnect_interval)
-    {
-        if (!client.connected())
-            reconnect();
-        mqtt_reconnect_current_millis = current_millis;
-    }
-    client.loop();
+    mqtt_loop();
     win_server.update();
     nas_server.update();
 }
