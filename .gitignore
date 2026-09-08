@@ -10,3 +10,6 @@ platformio.ini
 # Never commit these. Attach them to GitHub Releases only if
 # they were built with non-secret credentials.
 release/
+
+# Subagent-driven-development scratch workspace
+.superpowers/
