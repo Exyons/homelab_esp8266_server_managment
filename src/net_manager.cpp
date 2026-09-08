@@ -7,6 +7,7 @@
 static const unsigned long STA_CONNECT_TIMEOUT_MS = 30000;
 static const unsigned long AP_STA_RETRY_MS        = 300000;   // 5 minutes
 static const unsigned long RESET_HOLD_MS          = 5000;
+static const unsigned long RESET_ACQUIRE_WINDOW_MS = 5000;
 static const uint8_t       FLASH_BUTTON_PIN       = 0;         // GPIO0
 static const byte          DNS_PORT               = 53;
 
@@ -17,24 +18,38 @@ static char          g_ap_ssid[33]   = {0};
 static DNSServer     g_dns;
 static bool          g_dns_active    = false;
 
-// The FLASH button cannot be sampled during power-on: holding GPIO0 low at
-// reset enters the ROM bootloader. Sample after boot instead, so the user
-// presses and holds within the first five seconds of running firmware.
+// The FLASH button cannot be sampled during power-on: holding GPIO0 low as the
+// device comes out of reset selects the ROM UART bootloader instead of running
+// firmware. So the button is sampled only once firmware is up, and this call
+// opens a real acquisition window: for RESET_ACQUIRE_WINDOW_MS it polls GPIO0
+// waiting for a press, and once a press is seen the user must keep holding for
+// a further RESET_HOLD_MS (LED blinking) to confirm. Releasing during that
+// confirmation aborts the reset. The cost is a fixed ~5s of boot delay on every
+// boot; that is the price of the promised press-after-power-on window, and it
+// must also apply to STA boots, since the lockout this recovers from (valid
+// config, unknown updater password, unreachable broker) is an STA lockout.
 static bool flash_button_held_for_reset() {
     pinMode(FLASH_BUTTON_PIN, INPUT_PULLUP);
-    if (digitalRead(FLASH_BUTTON_PIN) != LOW) return false;
+    Serial.println(F("Hold FLASH within 5s for factory reset..."));
 
-    Serial.println(F("FLASH held; hold 5s for factory reset..."));
-    const unsigned long start = millis();
-    while (millis() - start < RESET_HOLD_MS) {
-        if (digitalRead(FLASH_BUTTON_PIN) != LOW) return false;
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(50);
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(50);
+    const unsigned long window_start = millis();
+    while (millis() - window_start < RESET_ACQUIRE_WINDOW_MS) {
+        if (digitalRead(FLASH_BUTTON_PIN) == LOW) {
+            Serial.println(F("FLASH held; hold 5s for factory reset..."));
+            const unsigned long start = millis();
+            while (millis() - start < RESET_HOLD_MS) {
+                if (digitalRead(FLASH_BUTTON_PIN) != LOW) return false;
+                digitalWrite(LED_BUILTIN, LOW);
+                delay(50);
+                digitalWrite(LED_BUILTIN, HIGH);
+                delay(50);
+            }
+            Serial.println(F("Factory reset triggered."));
+            return true;
+        }
+        delay(10);
     }
-    Serial.println(F("Factory reset triggered."));
-    return true;
+    return false;
 }
 
 static void build_ap_ssid() {
@@ -105,6 +120,14 @@ void net_loop() {
         break;
 
     case NET_AP:
+        // Someone is associated with the setup AP, so they are probably mid
+        // provisioning (or mid firmware upload). enter_sta() would drop the
+        // softAP under them. Defer, and restart the retry clock so the full
+        // interval elapses after the last client leaves.
+        if (WiFi.softAPgetStationNum() > 0) {
+            g_last_retry = millis();
+            break;
+        }
         // Self-heal: retry the station connection periodically unless the user
         // explicitly pinned AP mode.
         if (!config().ap_forced && config_is_provisioned(config()) &&
@@ -123,7 +146,12 @@ const char* net_ap_ssid() { return g_ap_ssid; }
 
 void net_set_ap_forced(bool forced) {
     config().ap_forced = forced;
-    config_store_save();
+    // The HTTP 200 has already gone out by the time we get here, so a failed
+    // write cannot be reported to the caller. Log it, so the serial console
+    // disagrees with the UI rather than both silently claiming success.
+    if (!config_store_save()) {
+        Serial.println(F("EEPROM write failed; ap_forced not persisted."));
+    }
     delay(200);
     ESP.restart();
 }
