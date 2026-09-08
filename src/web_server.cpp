@@ -11,8 +11,9 @@
 
 static ESP8266WebServer http_server(80);
 
-// Set once an upload's auth/origin check has passed, so repeated
-// UPLOAD_FILE_WRITE invocations don't re-run (and re-send on) the guard.
+// update_authorized is set once per upload, at UPLOAD_FILE_START, from the
+// silent post_authorized() check, so it gates every later WRITE/END chunk
+// without re-checking (or re-responding) per chunk.
 static bool update_started    = false;
 static bool update_authorized = false;
 
@@ -27,12 +28,22 @@ bool web_require_auth() {
 }
 
 // Rejects cross-site POSTs. Same-origin requests either omit Origin or send
-// one matching this device.
+// one matching this device. Missing Origin is allowed on purpose: browsers
+// always send it on cross-site POSTs, so its absence isn't the attack path,
+// and requiring it would break curl and the failsafe HTML form.
 static bool same_origin() {
     if (!http_server.hasHeader("Origin")) return true;   // curl, non-browser
-    const String origin = http_server.header("Origin");
-    const String host   = http_server.hostHeader();
-    return origin.endsWith(host);
+    const String host = http_server.hostHeader();
+    if (host.length() == 0) return false;                // no Host: cannot verify
+    return http_server.header("Origin") == String(F("http://")) + host;
+}
+
+// Same checks as guard_post(), but silent: the upload callback runs while the
+// request body is still being read, so the response belongs to the main handler.
+static bool post_authorized() {
+    const char* user = config_store_is_valid() ? config().upd_user : "admin";
+    const char* pass = config_store_is_valid() ? config().upd_pass : "admin";
+    return http_server.authenticate(user, pass) && same_origin();
 }
 
 static bool guard_post() {
@@ -171,7 +182,7 @@ void web_begin()
 
         if (upload.status == UPLOAD_FILE_START) {
             update_started    = false;
-            update_authorized = guard_post();
+            update_authorized = post_authorized();
             Serial.printf("Update: %s\n", upload.filename.c_str());
         }
         if (!update_authorized) return;
