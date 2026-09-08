@@ -196,22 +196,28 @@ void web_begin()
             return;
         }
         Config& c = config();
-        copy_field (c.wifi_ssid, sizeof(c.wifi_ssid), doc["wifi_ssid"]);
-        copy_secret(c.wifi_psk,  sizeof(c.wifi_psk),  doc["wifi_psk"]);
-        copy_field (c.mqtt_host, sizeof(c.mqtt_host), doc["mqtt_host"]);
-        copy_field (c.mqtt_user, sizeof(c.mqtt_user), doc["mqtt_user"]);
-        copy_secret(c.mqtt_pass, sizeof(c.mqtt_pass), doc["mqtt_pass"]);
-        copy_field (c.device_id, sizeof(c.device_id), doc["device_id"]);
-        copy_field (c.mdns_host, sizeof(c.mdns_host), doc["mdns_host"]);
-        copy_field (c.upd_user,  sizeof(c.upd_user),  doc["upd_user"]);
-        copy_secret(c.upd_pass,  sizeof(c.upd_pass),  doc["upd_pass"]);
-        if (doc["mqtt_port"].is<unsigned short>()) c.mqtt_port = doc["mqtt_port"];
+        Config tmp = c;                 // plain struct copy is safe: config_set_defaults and
+                                         // config_deserialize both memset, so padding is zeroed
+        copy_field (tmp.wifi_ssid, sizeof(tmp.wifi_ssid), doc["wifi_ssid"]);
+        copy_secret(tmp.wifi_psk,  sizeof(tmp.wifi_psk),  doc["wifi_psk"]);
+        copy_field (tmp.mqtt_host, sizeof(tmp.mqtt_host), doc["mqtt_host"]);
+        copy_field (tmp.mqtt_user, sizeof(tmp.mqtt_user), doc["mqtt_user"]);
+        copy_secret(tmp.mqtt_pass, sizeof(tmp.mqtt_pass), doc["mqtt_pass"]);
+        copy_field (tmp.device_id, sizeof(tmp.device_id), doc["device_id"]);
+        copy_field (tmp.mdns_host, sizeof(tmp.mdns_host), doc["mdns_host"]);
+        copy_field (tmp.upd_user,  sizeof(tmp.upd_user),  doc["upd_user"]);
+        copy_secret(tmp.upd_pass,  sizeof(tmp.upd_pass),  doc["upd_pass"]);
+        if (doc["mqtt_port"].is<unsigned short>()) tmp.mqtt_port = doc["mqtt_port"];
 
-        if (c.wifi_ssid[0] == '\0') {
+        if (tmp.wifi_ssid[0] == '\0') {
             http_server.send(400, "application/json", "{\"error\":\"wifi_ssid required\"}");
-            return;
+            return;                     // live config untouched
         }
+
+        const Config orig = c;          // snapshot so a failed EEPROM write can be undone
+        c = tmp;                        // commit to RAM only after validation passes
         if (!config_store_save()) {
+            c = orig;                   // keep RAM consistent with what's actually persisted
             http_server.send(500, "application/json", "{\"error\":\"eeprom write failed\"}");
             return;
         }
