@@ -9,6 +9,8 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include "pulse_action.h"
+#include "config_store.h"
+#include "net_manager.h"
 
 // #define STRINGIFY(x) #x
 // #define TOSTRING(x) STRINGIFY(x)
@@ -22,10 +24,6 @@ unsigned long mqtt_reconnect_current_millis = 0;
 String mdns_hostname = MDNS_HOSTNAME;
 const char *update_username = UPDATE_USERNAME;
 const char *update_password = UPDATE_PASSWORD;
-
-// Update these with your network details
-const char *ssid = WIFI_SSID;
-const char *password = WIFI_PASSWORD;
 
 // MQTT Broker details
 const char *mqtt_server = MQTT_SERVER;
@@ -71,51 +69,6 @@ const int send_magic_packet(const uint16_t port = 7)
     udp.write(payload_buffer, sizeof(payload_buffer));
     const int status = udp.endPacket();
     return status;
-}
-
-void setup_wifi()
-{
-    delay(10);
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-
-    uint8 i = 0;
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.print(".");
-        // Only blink LED for 5 seconds, it is annoying as it keep on blinking if wifi in not on
-        if (i <= 10)
-        {
-            digitalWrite(LED_BUILTIN, LOW);
-            delay(250);
-            digitalWrite(LED_BUILTIN, HIGH);
-            delay(250);
-            // Incrementing `i` here because it will not overflow
-            i++;
-        }
-        else
-            delay(500);
-    }
-
-    // Blink builtin LED fast to show wifi is connected
-    for (int i = 0; i < 3; i++)
-    {
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(50);
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(50);
-    }
-
-    randomSeed(micros());
-
-    Serial.println();
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
@@ -485,7 +438,8 @@ void setup()
         Serial.println("LittleFS mounted successfully");
     }
 
-    setup_wifi();
+    config_store_begin();
+    net_begin();
 
     setup_webupdater();
 
@@ -497,6 +451,8 @@ void setup()
 
 void loop()
 {
+    net_loop();
+
     http_server.handleClient();
     MDNS.update();
     const unsigned long current_millis = millis();

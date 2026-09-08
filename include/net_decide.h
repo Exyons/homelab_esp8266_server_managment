@@ -1,6 +1,6 @@
 #pragma once
 
-enum NetState { NET_STA_CONNECTING = 0, NET_AP = 1 };
+enum NetState { NET_STA_CONNECTING = 0, NET_AP = 1, NET_STA_CONNECTED = 2 };
 
 // Which network state to enter at boot. AP wins whenever the device cannot or
 // should not attempt a station connection.
