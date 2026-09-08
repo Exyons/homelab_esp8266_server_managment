@@ -80,18 +80,38 @@ void test_wrong_magic_is_rejected(void) {
     TEST_ASSERT_FALSE(config_deserialize(blob, out));
 }
 
-void test_serialize_zeroes_padding_deterministically(void) {
-    Config a, b;
-    config_set_defaults(a);
-    memset(&b, 0xAB, sizeof(b));     // fill b with junk including padding
-    config_set_defaults(b);          // must fully zero it again
-    strcpy(a.wifi_ssid, "Net");
-    strcpy(b.wifi_ssid, "Net");
+void test_serialize_ignores_caller_padding(void) {
+    Config clean, dirty;
 
-    uint8_t blob_a[CONFIG_BLOB_SIZE], blob_b[CONFIG_BLOB_SIZE];
-    config_serialize(a, blob_a);
-    config_serialize(b, blob_b);
-    TEST_ASSERT_EQUAL_INT(0, memcmp(blob_a, blob_b, CONFIG_BLOB_SIZE));
+    // Initialize clean with config_set_defaults
+    config_set_defaults(clean);
+    strcpy(clean.wifi_ssid, "TestNet");
+    clean.mqtt_port = 8884;
+
+    // Initialize dirty with same field values but dirty padding
+    memset(&dirty, 0xAB, sizeof(dirty));  // Fill everything with 0xAB
+    dirty.magic = CONFIG_MAGIC;
+    dirty.version = CONFIG_VERSION;
+    dirty.mqtt_port = 8884;
+    dirty.ap_forced = false;
+    memset(dirty.wifi_ssid, 0, sizeof(dirty.wifi_ssid));
+    strcpy(dirty.wifi_ssid, "TestNet");
+    memset(dirty.wifi_psk, 0, sizeof(dirty.wifi_psk));
+    memset(dirty.mqtt_host, 0, sizeof(dirty.mqtt_host));
+    memset(dirty.mqtt_user, 0, sizeof(dirty.mqtt_user));
+    memset(dirty.mqtt_pass, 0, sizeof(dirty.mqtt_pass));
+    memset(dirty.device_id, 0, sizeof(dirty.device_id));
+    memset(dirty.mdns_host, 0, sizeof(dirty.mdns_host));
+    strcpy(dirty.mdns_host, "esp-updater");
+    memset(dirty.upd_user, 0, sizeof(dirty.upd_user));
+    strcpy(dirty.upd_user, "admin");
+    memset(dirty.upd_pass, 0, sizeof(dirty.upd_pass));
+    strcpy(dirty.upd_pass, "admin");
+
+    uint8_t blob_clean[CONFIG_BLOB_SIZE], blob_dirty[CONFIG_BLOB_SIZE];
+    config_serialize(clean, blob_clean);
+    config_serialize(dirty, blob_dirty);
+    TEST_ASSERT_EQUAL_INT(0, memcmp(blob_clean, blob_dirty, CONFIG_BLOB_SIZE));
 }
 
 int main(int, char**) {
@@ -104,6 +124,6 @@ int main(int, char**) {
     RUN_TEST(test_erased_flash_blob_is_rejected);
     RUN_TEST(test_corrupt_crc_is_rejected);
     RUN_TEST(test_wrong_magic_is_rejected);
-    RUN_TEST(test_serialize_zeroes_padding_deterministically);
+    RUN_TEST(test_serialize_ignores_caller_padding);
     return UNITY_END();
 }
