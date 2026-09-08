@@ -4,3 +4,9 @@
 .vscode/launch.json
 .vscode/ipch
 platformio.ini
+
+# Build outputs — firmware binaries embed every -D build flag
+# (WiFi PSK, MQTT creds, UPDATE_PASSWORD) as plaintext strings.
+# Never commit these. Attach them to GitHub Releases only if
+# they were built with non-secret credentials.
+release/
