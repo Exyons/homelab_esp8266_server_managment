@@ -8,6 +8,7 @@
 #include <Updater.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
+#include "pulse_action.h"
 
 // #define STRINGIFY(x) #x
 // #define TOSTRING(x) STRINGIFY(x)
@@ -48,55 +49,6 @@ WiFiUDP udp;
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
 ESP8266WebServer http_server(80);
-
-struct PulseAction
-{
-    unsigned int pin;
-    unsigned long timer;
-    unsigned long duration;
-    bool active;
-    const char *name; // Just for logging
-    const char *update_message;
-
-    // For this board HIGH means LOW and vice-versa
-    void init(unsigned int _pin, const char *_name)
-    {
-        pin = _pin;
-        name = _name;
-        timer = 0;
-        active = false;
-        pinMode(pin, OUTPUT);
-        digitalWrite(pin, HIGH); // Turn Off initially
-    }
-
-    void trigger(unsigned long ms, const char *init_message, const char *_update_message, const char *active_message)
-    {
-        if (active)
-        {
-            client.publish(topic_status, active_message);
-            return; // Don't trigger if already running
-        }
-
-        client.publish(topic_status, init_message);
-
-        // Serial.printf("Triggering %s for %lu ms\n", name, ms);
-        digitalWrite(pin, LOW); // Turn On
-        timer = millis();
-        duration = ms;
-        active = true;
-        update_message = _update_message;
-    }
-
-    void update()
-    {
-        if (active && (millis() - timer) >= duration)
-        {
-            digitalWrite(pin, HIGH); // Turn Off
-            active = false;
-            client.publish(topic_status, update_message);
-        }
-    }
-};
 
 PulseAction win_server;
 PulseAction nas_server;
@@ -507,10 +459,14 @@ void setup_webupdater()
     MDNS.addService("http", "tcp", 80);
 }
 
+static void publish_status(const char* message) {
+    client.publish(topic_status, message);
+}
+
 void setup()
 {
-    win_server.init(POWER_PIN_WIN_SERVER, "win-server");
-    nas_server.init(POWER_PIN_NAS_SERVER, "nas-server");
+    win_server.init(POWER_PIN_WIN_SERVER, "win-server", publish_status);
+    nas_server.init(POWER_PIN_NAS_SERVER, "nas-server", publish_status);
 
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
