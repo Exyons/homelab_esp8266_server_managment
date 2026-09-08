@@ -7,6 +7,7 @@
 #include <LittleFS.h>
 #include "config_store.h"
 #include "image_detect.h"
+#include "net_manager.h"
 #include "version.h"
 
 static ESP8266WebServer http_server(80);
@@ -55,6 +56,25 @@ static bool guard_post() {
     return true;
 }
 
+// The distinction between these two is the whole password-redaction contract:
+// a secret arriving empty means "keep what is stored", so the browser never
+// has to hold or resend it.
+static void copy_field(char* dst, size_t cap, JsonVariant v) {
+    if (v.isNull()) return;
+    const char* s = v.as<const char*>();
+    if (s == nullptr) return;
+    strncpy(dst, s, cap - 1);
+    dst[cap - 1] = '\0';
+}
+
+static void copy_secret(char* dst, size_t cap, JsonVariant v) {
+    if (v.isNull()) return;
+    const char* s = v.as<const char*>();
+    if (s == nullptr || s[0] == '\0') return;   // empty means keep existing
+    strncpy(dst, s, cap - 1);
+    dst[cap - 1] = '\0';
+}
+
 static size_t fs_size_for_update() {
     extern uint32_t _FS_start;
     extern uint32_t _FS_end;
@@ -78,24 +98,33 @@ void web_begin()
         if (!file) {
             // Failsafe HTML
             const char* failsafe_html =
-                "<!DOCTYPE html><html><head><title>Failsafe Mode</title>"
-                "<meta name='viewport' content='width=device-width, initial-scale=1.0'></head>"
-                "<body><h1>&#9888; Failsafe Mode</h1>"
-                "<p><b>Critical Error:</b> <code>index.html</code> missing.</p>"
-                "<p>The filesystem appears to be broken. Use the forms below to recover.</p>"
-                "<hr>"
-                "<h3>Option 1: Restore Filesystem (Recommended)</h3>"
-                "<p>Select the filesystem binary (must contain <code>nigga_filesystem</code> in name).</p>"
+                "<!DOCTYPE html><html><head><title>Setup</title>"
+                "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+                "<style>body{font-family:sans-serif;max-width:26rem;margin:2rem auto;padding:0 1rem}"
+                "input{width:100%;padding:.5rem;margin:.25rem 0 .75rem;box-sizing:border-box}"
+                "button{width:100%;padding:.6rem}</style></head><body>"
+                "<h2>Device Setup</h2>"
+                "<p>No web assets found. Configure the device below.</p>"
+                "<label>WiFi SSID</label><input id=s>"
+                "<label>WiFi Password</label><input id=p type=password>"
+                "<label>MQTT Host</label><input id=h>"
+                "<label>MQTT Port</label><input id=o value=8883>"
+                "<label>MQTT User</label><input id=u>"
+                "<label>MQTT Password</label><input id=m type=password>"
+                "<label>Device ID</label><input id=d>"
+                "<button onclick=\"save()\">Save &amp; Reboot</button>"
+                "<hr><h3>Upload Firmware or Filesystem</h3>"
                 "<form method='POST' action='/update' enctype='multipart/form-data'>"
-                "<input type='file' name='update' accept='.bin'><br><br>"
-                "<input type='submit' value='Upload Filesystem'>"
-                "</form>"
-                "<hr>"
-                "<h3>Option 2: Update Firmware</h3>"
-                "<form method='POST' action='/update' enctype='multipart/form-data'>"
-                "<input type='file' name='update' accept='.bin'><br><br>"
-                "<input type='submit' value='Upload Firmware'>"
-                "</form>"
+                "<input type='file' name='update' accept='.bin'>"
+                "<button type='submit'>Upload</button></form>"
+                "<script>function save(){"
+                "var b={wifi_ssid:s.value,wifi_psk:p.value,mqtt_host:h.value,"
+                "mqtt_port:parseInt(o.value||'8883'),mqtt_user:u.value,"
+                "mqtt_pass:m.value,device_id:d.value};"
+                "fetch('/config',{method:'POST',headers:{'Content-Type':'application/json'},"
+                "body:JSON.stringify(b)}).then(r=>r.json()).then(j=>{"
+                "document.body.innerHTML=j.ok?'<h2>Saved. Rebooting...</h2>':"
+                "'<h2>Error: '+(j.error||'unknown')+'</h2>';});}</script>"
                 "</body></html>";
             http_server.send(200, "text/html", failsafe_html);
             return;
@@ -132,6 +161,84 @@ void web_begin()
         http_server.send(200, "text/plain");
         delay(1000);
         ESP.restart(); });
+
+    http_server.on("/config", HTTP_GET, []()
+                   {
+        if (!web_require_auth()) return;
+        const Config& c = config();
+        JsonDocument doc;
+        doc["wifi_ssid"]     = c.wifi_ssid;
+        doc["has_wifi_psk"]  = c.wifi_psk[0]  != '\0';
+        doc["mqtt_host"]     = c.mqtt_host;
+        doc["mqtt_port"]     = c.mqtt_port;
+        doc["mqtt_user"]     = c.mqtt_user;
+        doc["has_mqtt_pass"] = c.mqtt_pass[0] != '\0';
+        doc["device_id"]     = c.device_id;
+        doc["mdns_host"]     = c.mdns_host;
+        doc["upd_user"]      = c.upd_user;
+        doc["has_upd_pass"]  = c.upd_pass[0]  != '\0';
+        doc["ap_forced"]     = c.ap_forced;
+        doc["ap_mode"]       = net_is_ap();
+        doc["ap_ssid"]       = net_ap_ssid();
+        doc["provisioned"]   = config_is_provisioned(c);
+        doc["default_creds"] = (strcmp(c.upd_user, "admin") == 0 &&
+                                strcmp(c.upd_pass, "admin") == 0);
+        String out;
+        serializeJson(doc, out);
+        http_server.send(200, "application/json", out); });
+
+    http_server.on("/config", HTTP_POST, []()
+                   {
+        if (!guard_post()) return;
+        JsonDocument doc;
+        if (deserializeJson(doc, http_server.arg("plain"))) {
+            http_server.send(400, "application/json", "{\"error\":\"malformed json\"}");
+            return;
+        }
+        Config& c = config();
+        copy_field (c.wifi_ssid, sizeof(c.wifi_ssid), doc["wifi_ssid"]);
+        copy_secret(c.wifi_psk,  sizeof(c.wifi_psk),  doc["wifi_psk"]);
+        copy_field (c.mqtt_host, sizeof(c.mqtt_host), doc["mqtt_host"]);
+        copy_field (c.mqtt_user, sizeof(c.mqtt_user), doc["mqtt_user"]);
+        copy_secret(c.mqtt_pass, sizeof(c.mqtt_pass), doc["mqtt_pass"]);
+        copy_field (c.device_id, sizeof(c.device_id), doc["device_id"]);
+        copy_field (c.mdns_host, sizeof(c.mdns_host), doc["mdns_host"]);
+        copy_field (c.upd_user,  sizeof(c.upd_user),  doc["upd_user"]);
+        copy_secret(c.upd_pass,  sizeof(c.upd_pass),  doc["upd_pass"]);
+        if (doc["mqtt_port"].is<unsigned short>()) c.mqtt_port = doc["mqtt_port"];
+
+        if (c.wifi_ssid[0] == '\0') {
+            http_server.send(400, "application/json", "{\"error\":\"wifi_ssid required\"}");
+            return;
+        }
+        if (!config_store_save()) {
+            http_server.send(500, "application/json", "{\"error\":\"eeprom write failed\"}");
+            return;
+        }
+        http_server.send(200, "application/json", "{\"ok\":true,\"rebooting\":true}");
+        delay(500);
+        ESP.restart(); });
+
+    http_server.on("/ap_mode", HTTP_POST, []()
+                   {
+        if (!guard_post()) return;
+        JsonDocument doc;
+        if (deserializeJson(doc, http_server.arg("plain"))) {
+            http_server.send(400, "application/json", "{\"error\":\"malformed json\"}");
+            return;
+        }
+        const bool enabled = doc["enabled"] | false;
+        http_server.send(200, "application/json", "{\"ok\":true,\"rebooting\":true}");
+        delay(500);
+        net_set_ap_forced(enabled);     // saves config, then restarts
+    });
+
+    http_server.on("/factory_reset", HTTP_POST, []()
+                   {
+        if (!guard_post()) return;
+        http_server.send(200, "application/json", "{\"ok\":true,\"rebooting\":true}");
+        delay(500);
+        net_factory_reset_and_reboot(); });
 
     http_server.on("/info", HTTP_GET, []()
                    {
