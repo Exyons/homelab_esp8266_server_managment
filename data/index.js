@@ -63,7 +63,7 @@ function updateFileName() {
     }
   } else {
     label.textContent = "Grab that .bin real quick.";
-    upload_btn.textContent = "Update Nigga"; 
+    upload_btn_text.textContent = "Update Nigga";
   }
 }
 
@@ -216,4 +216,88 @@ function uploadFirmware() {
 
   xhr.open("POST", "/update");
   xhr.send(formData);
+}
+
+function fetchConfig() {
+  fetch("/config")
+    .then(function (r) { return r.json(); })
+    .then(function (c) {
+      document.getElementById("cfg-wifi-ssid").value = c.wifi_ssid || "";
+      document.getElementById("cfg-mqtt-host").value = c.mqtt_host || "";
+      document.getElementById("cfg-mqtt-port").value = c.mqtt_port || 8883;
+      document.getElementById("cfg-mqtt-user").value = c.mqtt_user || "";
+      document.getElementById("cfg-device-id").value = c.device_id || "";
+      document.getElementById("cfg-mdns-host").value = c.mdns_host || "";
+      document.getElementById("cfg-upd-user").value  = c.upd_user  || "";
+      document.getElementById("cfg-ap-forced").checked = !!c.ap_forced;
+
+      // Secrets are never sent by the device. A stored value shows as a
+      // placeholder so the field can be left blank to keep it.
+      setSecretPlaceholder("cfg-wifi-psk",  c.has_wifi_psk);
+      setSecretPlaceholder("cfg-mqtt-pass", c.has_mqtt_pass);
+      setSecretPlaceholder("cfg-upd-pass",  c.has_upd_pass);
+
+      document.getElementById("cred-warning").style.display =
+        c.default_creds ? "block" : "none";
+      document.getElementById("settings-container").style.display = "block";
+    })
+    .catch(function () { alert("Could not load config."); });
+}
+
+function setSecretPlaceholder(id, isSet) {
+  var el = document.getElementById(id);
+  el.value = "";
+  el.placeholder = isSet ? "•••••• (unchanged)" : "not set";
+}
+
+function hideSettings() {
+  document.getElementById("settings-container").style.display = "none";
+}
+
+function saveConfig(event) {
+  event.preventDefault();
+  var body = {
+    wifi_ssid: document.getElementById("cfg-wifi-ssid").value,
+    wifi_psk:  document.getElementById("cfg-wifi-psk").value,
+    mqtt_host: document.getElementById("cfg-mqtt-host").value,
+    mqtt_port: parseInt(document.getElementById("cfg-mqtt-port").value || "8883", 10),
+    mqtt_user: document.getElementById("cfg-mqtt-user").value,
+    mqtt_pass: document.getElementById("cfg-mqtt-pass").value,
+    device_id: document.getElementById("cfg-device-id").value,
+    mdns_host: document.getElementById("cfg-mdns-host").value,
+    upd_user:  document.getElementById("cfg-upd-user").value,
+    upd_pass:  document.getElementById("cfg-upd-pass").value
+  };
+  postJSON("/config", body, "Settings saved. Rebooting...");
+}
+
+function toggleApMode(enabled) {
+  if (!confirm(enabled
+      ? "Force AP mode? The device will leave your network and reboot."
+      : "Leave AP mode and reconnect to WiFi?")) {
+    document.getElementById("cfg-ap-forced").checked = !enabled;
+    return;
+  }
+  postJSON("/ap_mode", { enabled: enabled }, "Switching mode. Rebooting...");
+}
+
+function factoryReset() {
+  if (!confirm("Erase all settings and return to setup mode? This cannot be undone."))
+    return;
+  postJSON("/factory_reset", {}, "Config erased. Rebooting into AP mode...");
+}
+
+function postJSON(url, body, successMsg) {
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    .then(function (res) {
+      if (!res.ok) { alert("Error: " + (res.j.error || "unknown")); return; }
+      document.getElementById("status").innerText = successMsg;
+      setTimeout(function () { location.reload(); }, 15000);
+    })
+    .catch(function () { alert("Request failed."); });
 }
