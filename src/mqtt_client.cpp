@@ -216,10 +216,26 @@ void mqtt_loop() {
     // which blocks the loop (and so the web server) for seconds before failing
     // with rc=-2.
     if (WiFi.status() != WL_CONNECTED) return;
-    const unsigned long now = millis();
-    if (now - mqtt_last_attempt > mqtt_reconnect_interval) {
-        mqtt_last_attempt = now;
-        if (!client.connected()) reconnect();
+
+    // No broker configured: a provisioned-WiFi-but-blank-MQTT device would
+    // otherwise spend every cycle trying to resolve "" and blocking the loop,
+    // taking the web server down with it.
+    if (config().mqtt_host[0] == '\0') {
+        static bool warned = false;
+        if (!warned) {
+            warned = true;
+            Serial.println(F("No MQTT host configured; broker connection disabled."));
+        }
+        return;
+    }
+
+    if (millis() - mqtt_last_attempt > mqtt_reconnect_interval && !client.connected()) {
+        reconnect();
+        // Stamped AFTER the attempt, not before. connect() is a blocking TLS
+        // handshake that can outlast the interval; stamping first meant the
+        // guard had already expired by the next iteration, so attempts ran
+        // back to back with no backoff and starved http_server.handleClient().
+        mqtt_last_attempt = millis();
     }
     client.loop();
 }

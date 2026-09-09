@@ -79,6 +79,12 @@ static void enter_sta() {
     if (g_dns_active) { g_dns.stop(); g_dns_active = false; }
     WiFi.softAPdisconnect(true);  // drop any softAP left from AP mode
     WiFi.mode(WIFI_STA);
+    // Station hostname must be set before begin() or it is omitted from the
+    // DHCP request (option 12), so the router lists the device as unnamed and
+    // router-side name resolution never works.
+    if (config().mdns_host[0] != '\0') {
+        WiFi.hostname(config().mdns_host);
+    }
     WiFi.begin(config().wifi_ssid, config().wifi_psk);
     g_bound_ip      = IPAddress(0, 0, 0, 0);
     g_state         = NET_STA_CONNECTING;
