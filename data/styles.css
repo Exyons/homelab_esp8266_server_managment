@@ -142,3 +142,82 @@ input[type="file"] {
     from { transform: translate(-10%, -10%); }
     to { transform: translate(110%, 110%); }
 }
+
+/* ---------------------------------------------------------------
+   Inline SVG icons. Replaces the bootstrap-icons webfont, which is
+   a CDN request and therefore always fails in AP mode — leaving the
+   icon-only buttons (settings, info, reboot) invisible at exactly
+   the moment the device must be configured.
+   --------------------------------------------------------------- */
+.ico {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    flex: none;
+}
+
+/* ---------------------------------------------------------------
+   Offline fallback. index.js adds .nobs to <html> when the Bootstrap
+   CDN stylesheet did not load, which is the normal case while joined
+   to the device's own setup AP. These rules only apply in that state,
+   so the online appearance is untouched.
+   --------------------------------------------------------------- */
+.nobs body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #f4f4f9;
+    color: #212529;
+    margin: 0;
+    padding: 1rem;
+    display: block;
+}
+.nobs .container { max-width: 34rem; margin: 0 auto; }
+.nobs .card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 1.25rem;
+}
+.nobs h2 { font-size: 1.3rem; margin: 0 0 1rem; }
+.nobs h5 { font-size: 1.05rem; margin: 0; }
+.nobs label { display: block; margin-top: .6rem; font-size: .9rem; font-weight: 600; }
+.nobs input[type="text"],
+.nobs input[type="password"],
+.nobs input[type="number"],
+.nobs .form-control {
+    width: 100%;
+    padding: .45rem .6rem;
+    margin-top: .2rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+.nobs button, .nobs .custom-file-upload {
+    display: inline-block;
+    margin-top: .75rem;
+    padding: .5rem .9rem;
+    border: 1px solid #6c757d;
+    border-radius: 6px;
+    background: #fff;
+    color: #212529;
+    cursor: pointer;
+    font-size: 1rem;
+}
+/* Icon-only buttons carry no text, so give them a visible box offline. */
+.nobs .btn-icon-only { padding: .4rem .55rem; line-height: 1; }
+.nobs .btn-update-custom { background: #9d4edd; border-color: #9d4edd; color: #fff; width: 100%; }
+.nobs .btn-outline-danger { border-color: #dc3545; color: #dc3545; }
+.nobs .alert { padding: .6rem .8rem; border: 1px solid #ffc107; background: #fff3cd; border-radius: 6px; }
+.nobs table { width: 100%; border-collapse: collapse; }
+.nobs td { border: 1px solid #dee2e6; padding: .3rem .5rem; font-size: .85rem; }
+.nobs .d-flex { display: flex; }
+.nobs .justify-content-end { justify-content: flex-end; }
+.nobs .justify-content-between { justify-content: space-between; }
+.nobs .align-items-center { align-items: center; }
+.nobs .gap-3 { gap: .75rem; }
+.nobs .text-start { text-align: left; }
+.nobs .text-center { text-align: center; }
+.nobs .form-check { margin: .75rem 0; }
+.nobs .form-check-input { width: auto; margin-right: .4rem; }
+.nobs .bg-blob, .nobs .progress { display: none; }
+.nobs .theme-toggle { position: fixed; top: .5rem; right: .5rem; cursor: pointer; }

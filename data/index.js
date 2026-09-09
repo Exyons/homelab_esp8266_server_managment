@@ -1,3 +1,20 @@
+// Detect whether the Bootstrap CDN stylesheet actually loaded. While joined
+// to the device's own setup AP there is no internet, so it never does — and
+// without this the page renders unstyled with invisible icon-only buttons.
+// styles.css ships on the device and carries a .nobs fallback for that case.
+(function () {
+  try {
+    var probe = document.createElement("div");
+    probe.className = "d-none";
+    document.body.appendChild(probe);
+    var loaded = window.getComputedStyle(probe).display === "none";
+    document.body.removeChild(probe);
+    if (!loaded) document.documentElement.classList.add("nobs");
+  } catch (e) {
+    document.documentElement.classList.add("nobs");
+  }
+})();
+
 function toggleTheme() {
   const html = document.documentElement;
   const current = html.getAttribute("data-bs-theme");
@@ -18,12 +35,16 @@ function toggleTheme() {
 
 // Initialize Bootstrap Tooltips & Fetch Version
 window.onload = function () {
-  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
-    const t = new bootstrap.Tooltip(tooltipTriggerEl);
-    tooltipTriggerEl.addEventListener('click', () => t.hide());
-    return t;
-  });
+  // bootstrap.bundle.min.js is a CDN request and is absent in AP mode.
+  // Tooltips are decorative; skip them rather than throwing, which would
+  // abort the rest of window.onload including fetchVersion().
+  if (typeof bootstrap !== "undefined" && bootstrap.Tooltip) {
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].forEach(tooltipTriggerEl => {
+      const t = new bootstrap.Tooltip(tooltipTriggerEl);
+      tooltipTriggerEl.addEventListener('click', () => t.hide());
+    });
+  }
   
   fetchVersion();
 };
