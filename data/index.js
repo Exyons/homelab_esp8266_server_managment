@@ -111,12 +111,72 @@ function hidePanel(id) {
 var infoTimer = null;
 var infoInFlight = false;
 
+var activeInfoTab = "info";
+
+// Switch between the System Info table and the event log, and refresh the
+// pane being shown straight away rather than waiting for the next tick.
+function showInfoTab(tab) {
+  activeInfoTab = tab;
+  var isInfo = tab === "info";
+  document.getElementById("info-pane-info").style.display = isInfo ? "block" : "none";
+  document.getElementById("info-pane-logs").style.display = isInfo ? "none" : "block";
+  document.getElementById("tab-info").classList.toggle("active", isInfo);
+  document.getElementById("tab-logs").classList.toggle("active", !isInfo);
+  refreshActiveInfoTab();
+}
+
+function refreshActiveInfoTab() {
+  if (activeInfoTab === "logs") fetchLogs();
+  else fetchESPInfo();
+}
+
+function fetchLogs() {
+  var list = document.getElementById("log-list");
+  var xhr = new XMLHttpRequest();
+  infoInFlight = true;
+  xhr.onloadend = function () { infoInFlight = false; };
+  xhr.open("GET", "/logs");
+  xhr.onload = function () {
+    if (xhr.status !== 200) { list.innerHTML = "<em>Could not load logs.</em>"; return; }
+    var entries;
+    try { entries = JSON.parse(xhr.response); } catch (e) { return; }
+    if (!entries.length) { list.innerHTML = "<em>Nothing logged yet.</em>"; return; }
+
+    // Only redraw when something changed, so the pane does not flicker or
+    // fight the user's scroll position once a second.
+    var stamp = entries.length + "|" + entries[entries.length - 1].t +
+                "|" + entries[entries.length - 1].m;
+    if (list.dataset.stamp === stamp) return;
+    list.dataset.stamp = stamp;
+
+    var atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 24;
+    list.innerHTML = "";
+    entries.forEach(function (e) {
+      var row  = document.createElement("div");
+      row.className = "log-row";
+      var time = document.createElement("span");
+      time.className = "log-time";
+      time.innerText = e.t;
+      var msg  = document.createElement("span");
+      msg.className = "log-msg";
+      msg.innerText = e.m;
+      if (/fail|warning|lost|unreachable|could not|erasing/i.test(e.m)) {
+        row.classList.add("log-warn");
+      }
+      row.append(time, msg);
+      list.append(row);
+    });
+    if (atBottom) list.scrollTop = list.scrollHeight;
+  };
+  xhr.send();
+}
+
 function startInfoAutoRefresh() {
   if (infoTimer !== null) return;
   infoTimer = setInterval(function () {
     if (!panelShown("info-container")) { stopInfoAutoRefresh(); return; }
     if (infoInFlight) return;
-    fetchESPInfo();
+    refreshActiveInfoTab();
   }, 1000);
 }
 
@@ -134,7 +194,7 @@ function toggleESPInfo() {
     return;
   }
   hidePanel("settings-container");
-  fetchESPInfo();
+  refreshActiveInfoTab();
   startInfoAutoRefresh();
 }
 

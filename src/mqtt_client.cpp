@@ -2,6 +2,7 @@
 #include "config_store.h"
 #include "net_manager.h"
 #include "net_util.h"
+#include "log_store.h"
 #include "version.h"
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
@@ -171,8 +172,7 @@ static void reconnect() {
                                    config().mqtt_user, config().mqtt_pass,
                                    topic_status, 0, true, "offline");
     if (ok) {
-        Serial.printf("connected (heap %u, largest block %u)\n",
-                      ESP.getFreeHeap(), ESP.getMaxFreeBlockSize());
+        log_add("MQTT broker connected (%s)", config().mqtt_host);
         // Retained, so a late subscriber sees current state. Paired with the LWT.
         client.publish(topic_status, "online", true);
 
@@ -190,8 +190,8 @@ static void reconnect() {
 
         client.subscribe(topic_command);
     } else {
-        Serial.printf(" failed, rc=%d, retry in %.2f s\n",
-                      client.state(), mqtt_reconnect_interval / 1000.0);
+        log_add("MQTT broker unreachable (error %d), retrying in %lus",
+                client.state(), (unsigned long)(mqtt_reconnect_interval / 1000));
     }
 }
 
@@ -224,7 +224,7 @@ void mqtt_loop() {
         static bool warned = false;
         if (!warned) {
             warned = true;
-            Serial.println(F("No MQTT host configured; broker connection disabled."));
+            log_add("No MQTT broker configured, skipping");
         }
         return;
     }

@@ -8,6 +8,7 @@
 #include <LittleFS.h>
 #include "config_store.h"
 #include "image_detect.h"
+#include "log_store.h"
 #include "net_manager.h"
 #include "version.h"
 
@@ -250,6 +251,7 @@ void web_begin()
             http_server.send(500, "application/json", "{\"error\":\"eeprom write failed\"}");
             return;
         }
+        log_add("Settings saved, restarting");
         http_server.send(200, "application/json", "{\"ok\":true,\"rebooting\":true}");
         delay(500);
         ESP.restart(); });
@@ -271,9 +273,17 @@ void web_begin()
     http_server.on("/factory_reset", HTTP_POST, []()
                    {
         if (!guard_post()) return;
+        log_add("Factory reset requested from the web interface");
         http_server.send(200, "application/json", "{\"ok\":true,\"rebooting\":true}");
         delay(500);
         net_factory_reset_and_reboot(); });
+
+    http_server.on("/logs", HTTP_GET, []()
+                   {
+        if (!web_require_auth()) return;
+        String out;
+        log_to_json(out);
+        http_server.send(200, "application/json", out); });
 
     http_server.on("/info", HTTP_GET, []()
                    {
@@ -326,7 +336,7 @@ void web_begin()
             update_started    = false;
             update_failed     = false;
             update_authorized = post_authorized();
-            Serial.printf("Update: %s\n", upload.filename.c_str());
+            log_add("Upload started: %s", upload.filename.c_str());
         }
         if (!update_authorized || update_failed) return;
 
@@ -337,7 +347,7 @@ void web_begin()
                 const size_t size    = (type == IMAGE_FIRMWARE)
                                      ? ((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)
                                      : fs_size_for_update();
-                Serial.printf("Target: %s\n", type == IMAGE_FIRMWARE ? "Firmware" : "Filesystem");
+                log_add("Detected a %s image", type == IMAGE_FIRMWARE ? "firmware" : "filesystem");
                 if (!Update.begin(size, command)) {
                     Update.printError(Serial);
                     update_failed = true;   // never re-detect on mid-file bytes
@@ -349,8 +359,8 @@ void web_begin()
                 Update.printError(Serial);
             }
         } else if (upload.status == UPLOAD_FILE_END) {
-            if (Update.end(true)) Serial.printf("Success: %u bytes\n", upload.totalSize);
-            else                  Update.printError(Serial);
+            if (Update.end(true)) log_add("Upload finished: %u bytes written", upload.totalSize);
+            else                  { log_add("Upload FAILED during write"); Update.printError(Serial); }
         } });
 
     // Handle 404 and Static Files (JS/CSS)
@@ -431,9 +441,9 @@ void web_on_network_up()
     MDNS.end();                       // no-op if never started; safe on reconnect
     if (MDNS.begin(config().mdns_host)) {
         MDNS.addService("http", "tcp", 80);
-        Serial.printf("HTTP + mDNS up: http://%s.local  http://%s\n",
-                      config().mdns_host, addr.c_str());
+        log_add("Web interface ready at http://%s and http://%s.local",
+                addr.c_str(), config().mdns_host);
     } else {
-        Serial.printf("HTTP up on http://%s (mDNS responder failed)\n", addr.c_str());
+        log_add("Web interface ready at http://%s (.local name unavailable)", addr.c_str());
     }
 }

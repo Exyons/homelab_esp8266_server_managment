@@ -404,3 +404,60 @@ body::after {
 .nobs hr { border: 0; border-top: 1px solid #dee2e6; margin: 1.25rem 0; }
 .nobs[data-bs-theme="dark"] hr { border-top-color: #343a40; }
 .nobs .table-responsive { overflow-x: auto; }
+
+/* ---------------------------------------------------------------
+   Info panel tabs and the event log.
+   --------------------------------------------------------------- */
+.info-tab {
+    background: transparent;
+    border: none;
+    padding: .15rem .1rem;
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color, #6c757d);
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+    transition: color .2s, border-color .2s;
+}
+.info-tab:hover { color: var(--bs-body-color, #212529); }
+.info-tab.active {
+    color: var(--btn-custom-color);
+    border-bottom-color: var(--btn-custom-color);
+}
+.info-tabs { gap: 1rem !important; }
+
+.log-list {
+    max-height: 15rem;
+    overflow-y: auto;
+    font-size: .82rem;
+    line-height: 1.45;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: .5rem;
+    padding: .5rem .6rem;
+}
+.log-row {
+    display: flex;
+    gap: .6rem;
+    padding: .12rem 0;
+    align-items: baseline;
+}
+.log-row + .log-row { border-top: 1px solid rgba(128, 128, 128, .15); }
+.log-time {
+    flex: none;
+    min-width: 4.2rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    opacity: .6;
+}
+.log-msg { word-break: break-word; }
+.log-warn .log-msg { color: #d6336c; font-weight: 600; }
+[data-bs-theme="dark"] .log-warn .log-msg { color: #ff8fab; }
+
+/* offline fallback */
+.nobs .info-tab { background: transparent; border: none; border-bottom: 2px solid transparent; }
+.nobs .info-tab.active { color: #9d4edd; border-bottom-color: #9d4edd; }
+.nobs[data-bs-theme="dark"] .info-tab.active { color: #c77dff; border-bottom-color: #c77dff; }
+.nobs .log-list { border: 1px solid #dee2e6; border-radius: .5rem; }
+.nobs[data-bs-theme="dark"] .log-list { border-color: #343a40; }
