@@ -411,13 +411,23 @@ void web_loop()
     MDNS.update();
 }
 
-void web_start_mdns()
+void web_on_network_up()
 {
+    // Re-bind the listener. web_begin() already called begin(), but that runs
+    // before DHCP has completed on a station boot, and a listener bound with no
+    // interface address does not accept once the address arrives. Re-binding
+    // here is what makes the UI reachable in STA mode; in AP mode the softAP
+    // address already existed at web_begin() time, which is why only STA broke.
+    http_server.stop();
+    http_server.begin();
+
     MDNS.end();                       // no-op if never started; safe on reconnect
     if (MDNS.begin(config().mdns_host)) {
         MDNS.addService("http", "tcp", 80);
-        Serial.printf("mDNS responder started: http://%s.local\n", config().mdns_host);
+        Serial.printf("HTTP + mDNS up: http://%s.local  http://%s\n",
+                      config().mdns_host, WiFi.localIP().toString().c_str());
     } else {
-        Serial.println(F("mDNS responder failed to start."));
+        Serial.printf("HTTP up on http://%s (mDNS responder failed)\n",
+                      WiFi.localIP().toString().c_str());
     }
 }

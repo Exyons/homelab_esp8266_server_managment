@@ -103,8 +103,9 @@ void net_loop() {
             g_state         = NET_STA_CONNECTED;
             g_state_entered = millis();
             Serial.printf("WiFi connected: %s\n", WiFi.localIP().toString().c_str());
-            // Only now does the station have an IP for the responder to bind to.
-            web_start_mdns();
+            // Only now does the station have an IP for the listener and the
+            // responder to bind to.
+            web_on_network_up();
             for (int i = 0; i < 3; i++) {          // connected blink
                 digitalWrite(LED_BUILTIN, LOW);  delay(50);
                 digitalWrite(LED_BUILTIN, HIGH); delay(50);
