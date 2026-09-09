@@ -172,7 +172,21 @@ static void reconnect() {
                                    topic_status, 0, true, "offline");
     if (ok) {
         Serial.println(F("connected"));
-        client.publish(topic_status, "online", true);   // retained
+        // Retained, so a late subscriber sees current state. Paired with the LWT.
+        client.publish(topic_status, "online", true);
+
+        // Human-readable announcement. Restored after the module extraction
+        // dropped it: this is how the device tells you where to reach its
+        // updater, which is the only way to find it on a DHCP lease.
+        client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
+        String version_info = "System's at version v" + firmware_version + ", we stayin' current.";
+        client.publish(topic_status, version_info.c_str());
+        const String local_ip = WiFi.localIP().toString();
+        const String update_url_info = "Update server's live! Head to http://" +
+                                       String(config().mdns_host) + ".local or http://" +
+                                       local_ip + " and lock in with your info.";
+        client.publish(topic_status, update_url_info.c_str());
+
         client.subscribe(topic_command);
     } else {
         Serial.printf(" failed, rc=%d, retry in %.2f s\n",

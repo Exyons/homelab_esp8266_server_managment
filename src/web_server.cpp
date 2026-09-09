@@ -94,7 +94,10 @@ void web_begin()
     // return false, silently disabling the CSRF guard below.
     http_server.collectHeaders("Origin");
 
-    MDNS.begin(config().mdns_host);
+    // mDNS is NOT started here. web_begin() runs immediately after net_begin(),
+    // which only *starts* the station association — there is no IP yet, and a
+    // responder bound at that moment never answers. net_manager calls
+    // web_start_mdns() on the transition to NET_STA_CONNECTED instead.
 
     // Serve the HTML page from LittleFS
     http_server.on("/", HTTP_GET, []()
@@ -399,11 +402,22 @@ void web_begin()
 
     http_server.begin();
 
-    MDNS.addService("http", "tcp", 80);
+
 }
 
 void web_loop()
 {
     http_server.handleClient();
     MDNS.update();
+}
+
+void web_start_mdns()
+{
+    MDNS.end();                       // no-op if never started; safe on reconnect
+    if (MDNS.begin(config().mdns_host)) {
+        MDNS.addService("http", "tcp", 80);
+        Serial.printf("mDNS responder started: http://%s.local\n", config().mdns_host);
+    } else {
+        Serial.println(F("mDNS responder failed to start."));
+    }
 }
