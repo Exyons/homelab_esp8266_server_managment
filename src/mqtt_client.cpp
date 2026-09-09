@@ -171,7 +171,8 @@ static void reconnect() {
                                    config().mqtt_user, config().mqtt_pass,
                                    topic_status, 0, true, "offline");
     if (ok) {
-        Serial.println(F("connected"));
+        Serial.printf("connected (heap %u, largest block %u)\n",
+                      ESP.getFreeHeap(), ESP.getMaxFreeBlockSize());
         // Retained, so a late subscriber sees current state. Paired with the LWT.
         client.publish(topic_status, "online", true);
 
@@ -210,6 +211,11 @@ void mqtt_begin(PulseAction* win, PulseAction* nas) {
 
 void mqtt_loop() {
     if (net_is_ap()) return;              // no broker while provisioning
+    // Also wait for a real station connection. Gating only on !net_is_ap()
+    // fired TLS handshakes during NET_STA_CONNECTING with no route, each of
+    // which blocks the loop (and so the web server) for seconds before failing
+    // with rc=-2.
+    if (WiFi.status() != WL_CONNECTED) return;
     const unsigned long now = millis();
     if (now - mqtt_last_attempt > mqtt_reconnect_interval) {
         mqtt_last_attempt = now;

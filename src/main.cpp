@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ESP8266WiFi.h>
 #include <LittleFS.h>
 #include "config_store.h"
 #include "net_manager.h"
@@ -36,7 +37,21 @@ void setup() {
     mqtt_begin(&win_server, &nas_server);
 }
 
+// Periodic health line. The web server failing to accept while everything
+// else looks healthy points at heap exhaustion rather than a bad bind, and
+// the largest free block matters more than the total: TCP accept needs a
+// contiguous allocation.
+static void heap_heartbeat() {
+    static unsigned long last = 0;
+    if (millis() - last < 10000) return;
+    last = millis();
+    Serial.printf("[health] heap=%u largest=%u frag=%u%% wifi=%d mqtt=%d\n",
+                  ESP.getFreeHeap(), ESP.getMaxFreeBlockSize(),
+                  ESP.getHeapFragmentation(), WiFi.status(), mqtt_connected());
+}
+
 void loop() {
+    heap_heartbeat();
     net_loop();
     web_loop();
     mqtt_loop();
