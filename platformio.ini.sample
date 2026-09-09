@@ -1,3 +1,8 @@
+[platformio]
+; Bare `pio run` (and the IDE Build button) builds only the firmware.
+; The host unit tests are opt-in: `pio test -e native`.
+default_envs = nodemcuv2
+
 [env:nodemcuv2]
 platform = espressif8266
 board = nodemcuv2
@@ -15,6 +20,8 @@ build_flags =
 board_build.filesystem = littlefs
 extra_scripts = post:create_release.py
 [env:native]
+; Host unit tests only. `pio run -e native` fails by design (no main() in
+; these sources); the main() functions live in test/. Run: pio test -e native
 platform = native
 test_framework = unity
 test_build_src = yes
