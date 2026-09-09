@@ -72,10 +72,12 @@ static void enter_ap() {
     g_last_retry    = millis();
 
     Serial.printf("AP up: %s  http://%s\n", g_ap_ssid, ip.toString().c_str());
+    web_on_network_up();          // softAP already holds 192.168.4.1
 }
 
 static void enter_sta() {
     if (g_dns_active) { g_dns.stop(); g_dns_active = false; }
+    WiFi.softAPdisconnect(true);  // drop any softAP left from AP mode
     WiFi.mode(WIFI_STA);
     WiFi.begin(config().wifi_ssid, config().wifi_psk);
     g_bound_ip      = IPAddress(0, 0, 0, 0);
@@ -85,6 +87,8 @@ static void enter_sta() {
 }
 
 void net_begin() {
+    Serial.printf("Reset reason: %s\n", ESP.getResetReason().c_str());
+    WiFi.persistent(false);       // don't rewrite WiFi config to flash each boot
     const bool reset_requested = flash_button_held_for_reset();
     if (reset_requested) {
         config_store_factory_reset();

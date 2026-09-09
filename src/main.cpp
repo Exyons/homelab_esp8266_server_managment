@@ -30,8 +30,9 @@ void setup() {
     }
 
     config_store_begin();   // must precede net_begin(); it reads the config
+    web_begin();            // registers routes only — must precede net_begin(),
+                            // which binds the listener via web_on_network_up()
     net_begin();
-    web_begin();
     mqtt_begin(&win_server, &nas_server);
 }
 

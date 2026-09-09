@@ -23,6 +23,7 @@ static bool update_authorized = false;
 // which are essentially never 0xE9, so it would pick U_FS and write the tail
 // of a firmware image over LittleFS — then report success.
 static bool update_failed     = false;
+static bool g_http_started    = false;
 
 bool web_require_auth() {
     const char* user = config_store_is_valid() ? config().upd_user : "admin";
@@ -400,9 +401,11 @@ void web_begin()
              http_server.send(404, "text/plain", "404 Not Found (and 404 file missing)");
         } });
 
-    http_server.begin();
-
-
+    // Deliberately no http_server.begin() here. web_begin() only registers
+    // routes; the listener is bound by web_on_network_up() once the interface
+    // actually has an address. Binding here and re-binding later left the
+    // listener dead on the STA path — AP mode bound once and worked, STA bound
+    // with no address, stopped, and re-bound, and never accepted after that.
 }
 
 void web_loop()
@@ -413,21 +416,24 @@ void web_loop()
 
 void web_on_network_up()
 {
-    // Re-bind the listener. web_begin() already called begin(), but that runs
-    // before DHCP has completed on a station boot, and a listener bound with no
-    // interface address does not accept once the address arrives. Re-binding
-    // here is what makes the UI reachable in STA mode; in AP mode the softAP
-    // address already existed at web_begin() time, which is why only STA broke.
-    http_server.stop();
+    // The one and only place the listener is bound, called once the interface
+    // has an address — softAP in AP mode, DHCP in STA mode. Only stop a
+    // listener that was actually started; stopping a never-begun server and
+    // re-binding is what broke the STA path.
+    if (g_http_started) http_server.stop();
     http_server.begin();
+    g_http_started = true;
+
+    // In AP mode localIP() is 0.0.0.0; the reachable address is the softAP's.
+    const String addr = net_is_ap() ? WiFi.softAPIP().toString()
+                                    : WiFi.localIP().toString();
 
     MDNS.end();                       // no-op if never started; safe on reconnect
     if (MDNS.begin(config().mdns_host)) {
         MDNS.addService("http", "tcp", 80);
         Serial.printf("HTTP + mDNS up: http://%s.local  http://%s\n",
-                      config().mdns_host, WiFi.localIP().toString().c_str());
+                      config().mdns_host, addr.c_str());
     } else {
-        Serial.printf("HTTP up on http://%s (mDNS responder failed)\n",
-                      WiFi.localIP().toString().c_str());
+        Serial.printf("HTTP up on http://%s (mDNS responder failed)\n", addr.c_str());
     }
 }
