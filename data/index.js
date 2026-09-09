@@ -88,6 +88,43 @@ function updateFileName() {
   }
 }
 
+/* ---- Panel visibility -------------------------------------------------
+   The info table and the settings form are mutually exclusive: opening one
+   closes the other, and clicking a panel's own icon again closes it. Both
+   start hidden via an inline style, so "block" is the only shown state.
+   ----------------------------------------------------------------------- */
+function panelShown(id) {
+  return document.getElementById(id).style.display === "block";
+}
+
+function showPanel(id) {
+  document.getElementById(id).style.display = "block";
+}
+
+function hidePanel(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+// Bound to the info icon. Closes settings if it was open.
+function toggleESPInfo() {
+  if (panelShown("info-container")) {
+    hidePanel("info-container");
+    return;
+  }
+  hidePanel("settings-container");
+  fetchESPInfo();
+}
+
+// Bound to the gear icon. Closes the info table if it was open.
+function toggleSettings() {
+  if (panelShown("settings-container")) {
+    hidePanel("settings-container");
+    return;
+  }
+  hidePanel("info-container");
+  fetchConfig();
+}
+
 function fetchESPInfo() {
   const esp_info_table = document.getElementById("esp-info-table");
   const info_container = document.getElementById("info-container");
@@ -111,17 +148,17 @@ function fetchESPInfo() {
         esp_info_table.append(table_row);
       }
       // Show container
-      info_container.style.display = "block";
+      showPanel("info-container");
     } else {
       esp_info_table.innerHTML = "<h3>Error Fetching Info</h3>";
-      info_container.style.display = "block";
+      showPanel("info-container");
     }
   };
   xhr.send();
 }
 
 function hideESPInfo() {
-  document.getElementById("info-container").style.display = "none";
+  hidePanel("info-container");
 }
 
 function rebootDevice() {
@@ -260,7 +297,7 @@ function fetchConfig() {
 
       document.getElementById("cred-warning").style.display =
         c.default_creds ? "block" : "none";
-      document.getElementById("settings-container").style.display = "block";
+      showPanel("settings-container");
     })
     .catch(function () { alert("Could not load config."); });
 }
@@ -272,7 +309,7 @@ function setSecretPlaceholder(id, isSet) {
 }
 
 function hideSettings() {
-  document.getElementById("settings-container").style.display = "none";
+  hidePanel("settings-container");
 }
 
 function saveConfig(event) {

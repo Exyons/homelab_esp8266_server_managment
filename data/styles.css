@@ -221,3 +221,54 @@ input[type="file"] {
 .nobs .form-check-input { width: auto; margin-right: .4rem; }
 .nobs .bg-blob, .nobs .progress { display: none; }
 .nobs .theme-toggle { position: fixed; top: .5rem; right: .5rem; cursor: pointer; }
+
+/* ---------------------------------------------------------------
+   Offline dark mode. The .nobs fallback above is appended after
+   `[data-bs-theme="dark"] body` and matches at equal specificity,
+   so without these rules it silently overrode the dark gradient and
+   left the page white. Both attributes land on <html>, so
+   `.nobs[data-bs-theme="dark"]` outranks the plain `.nobs` rules.
+   --------------------------------------------------------------- */
+.nobs[data-bs-theme="dark"] body {
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    background-attachment: fixed;
+    color: #e9ecef;
+}
+.nobs[data-bs-theme="dark"] .card {
+    background: #1b1b23;
+    border-color: #343a40;
+    color: #e9ecef;
+}
+.nobs[data-bs-theme="dark"] input[type="text"],
+.nobs[data-bs-theme="dark"] input[type="password"],
+.nobs[data-bs-theme="dark"] input[type="number"],
+.nobs[data-bs-theme="dark"] .form-control {
+    background: #24242e;
+    border-color: #43434f;
+    color: #e9ecef;
+}
+.nobs[data-bs-theme="dark"] input::placeholder { color: #8b8b96; }
+.nobs[data-bs-theme="dark"] button,
+.nobs[data-bs-theme="dark"] .custom-file-upload {
+    background: #24242e;
+    border-color: #43434f;
+    color: #e9ecef;
+}
+.nobs[data-bs-theme="dark"] .btn-update-custom {
+    background: #c77dff;
+    border-color: #c77dff;
+    color: #16161d;
+}
+.nobs[data-bs-theme="dark"] .btn-outline-danger {
+    background: transparent;
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+}
+.nobs[data-bs-theme="dark"] .alert {
+    background: #3d3213;
+    border-color: #6b5a1f;
+    color: #ffe08a;
+}
+.nobs[data-bs-theme="dark"] td { border-color: #343a40; }
+.nobs[data-bs-theme="dark"] .text-muted { color: #9aa0a6 !important; }
+.nobs[data-bs-theme="dark"] hr { border-color: #343a40; }
