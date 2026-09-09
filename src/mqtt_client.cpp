@@ -122,9 +122,9 @@ static void callback(char* topic, byte* payload, unsigned int length) {
             client.publish(topic_status, "(,,>﹏<,,)👉👈 Nah bruh, that magic packet didn't even go through! 😢");
         }
     }
-    else if (message == "FUCK_YOU")
+    else if (message == "SCREW_YOU")
     {
-        client.publish(topic_status, "Fuck You 𝓷𝓲𝓰𝓰𝓪𝓪𝓪𝓪...");
+        client.publish(topic_status, "Screw you too, homie 𝓪𝓪𝓪𝓪...");
         client.publish(topic_status, "⎛⎝(`ᢍ´)⎠⎞ᵐᵘʰᵃʰᵃ");
         client.publish(topic_status, "(-_•)╦̵̵̿╤─");
     }
@@ -132,12 +132,12 @@ static void callback(char* topic, byte* payload, unsigned int length) {
     {
         client.publish(topic_status, "╭∩╮(•̀_·́)╭∩╮");
     }
-    else if (message == "DIDDY")
+    else if (message == "PARTY")
     {
         client.publish(topic_status, "(≖‿≖) Heehee");
-        client.publish(topic_status, "𝓓𝓲𝓭𝓭𝔂 𝓽𝓲𝓶𝓮👅🧴🧴");
+        client.publish(topic_status, "𝓟𝓪𝓻𝓽𝔂 𝓽𝓲𝓶𝓮🎉🕺🪩");
     }
-    else if (message == "BITCH")
+    else if (message == "PUNK")
     {
         client.publish(topic_status, "(＾◡＾)っ✂╰⋃╯");
     }
@@ -179,7 +179,7 @@ static void reconnect() {
         // Human-readable announcement. Restored after the module extraction
         // dropped it: this is how the device tells you where to reach its
         // updater, which is the only way to find it on a DHCP lease.
-        client.publish(topic_status, "(=^◡^=) Yo Nigga, I'm live! Let's get it!");
+        client.publish(topic_status, "(=^◡^=) Yo homie, I'm live! Let's get it!");
         String version_info = "System's at version v" + firmware_version + ", we stayin' current.";
         client.publish(topic_status, version_info.c_str());
         const String local_ip = WiFi.localIP().toString();

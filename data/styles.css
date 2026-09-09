@@ -31,11 +31,33 @@ body {
     background-attachment: fixed;
 }
 
+.btn-icon-only.theme-toggle,
 .theme-toggle {
     cursor: pointer;
-    z-index: 1050; /* Ensure it's above other content */
     user-select: none;
-    font-size: 1.5em;
+    font-size: 1.1rem;
+    line-height: 1;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% !important;
+    background: rgba(0, 0, 0, 0.06) !important;
+    transition: background 0.2s, transform 0.2s;
+}
+.btn-icon-only.theme-toggle:hover,
+.theme-toggle:hover {
+    background: rgba(0, 0, 0, 0.12) !important;
+    transform: scale(1.08);
+}
+[data-bs-theme="dark"] .btn-icon-only.theme-toggle,
+[data-bs-theme="dark"] .theme-toggle {
+    background: rgba(255, 255, 255, 0.10) !important;
+}
+[data-bs-theme="dark"] .btn-icon-only.theme-toggle:hover,
+[data-bs-theme="dark"] .theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
 }
 
 .updater-card {
@@ -225,7 +247,7 @@ input[type="file"] {
 .nobs .form-check { margin: .75rem 0; }
 .nobs .form-check-input { width: auto; margin-right: .4rem; }
 .nobs .bg-blob, .nobs .progress { display: none; }
-.nobs .theme-toggle { position: fixed; top: .5rem; right: .5rem; cursor: pointer; }
+.nobs .theme-toggle { cursor: pointer; }
 
 /* ---------------------------------------------------------------
    Offline dark mode. The .nobs fallback above is appended after

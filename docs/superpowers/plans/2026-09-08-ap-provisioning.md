@@ -1063,7 +1063,7 @@ bool mqtt_connected();
 Create `src/mqtt_client.cpp`. Move `callback()` (`src/main.cpp:170-283`) and `reconnect()` (`src/main.cpp:285-309`) here, applying these changes:
 
 1. Read every credential from `config()` instead of the `-D` macros.
-2. Delete the `delay(100)` chains in the `FUCK_YOU` and `DIDDY` branches — they stall `client.loop()` and the MQTT keepalive. Publish the lines back to back.
+2. Delete the `delay(100)` chains in the `SCREW_YOU` and `PARTY` branches — they stall `client.loop()` and the MQTT keepalive. Publish the lines back to back.
 3. Fix the integer division in the retry log: `mqtt_reconnect_interval / 1000.0`.
 4. Rewrite `send_magic_packet` to use `broadcast_addr` and `beginPacket`.
 5. Add the four new commands.
@@ -1333,7 +1333,7 @@ Flash, then:
 - Browse to the device; the updater page loads after auth.
 - `curl -u admin:admin -X POST -H "Origin: http://evil.test" http://<ip>/reboot` returns 403.
 - `curl -u admin:admin -X POST http://<ip>/reboot` succeeds.
-- Rename a firmware `.bin` to `nigga_filesystem_test.bin` and upload it; serial must report `Target: Firmware`.
+- Rename a firmware `.bin` to `homie_filesystem_test.bin` and upload it; serial must report `Target: Firmware`.
 
 - [ ] **Step 4: Commit**
 
@@ -1543,9 +1543,9 @@ At `data/index.js:66`, `upload_btn.textContent` throws — the element id is `up
 
 ```javascript
 // before
-upload_btn.textContent = "Update Nigga";
+upload_btn.textContent = "Update Homie";
 // after
-upload_btn_text.textContent = "Update Nigga";
+upload_btn_text.textContent = "Update Homie";
 ```
 
 - [ ] **Step 2: Add the settings panel markup**

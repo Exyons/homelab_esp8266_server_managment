@@ -78,13 +78,13 @@ function updateFileName() {
     const filename = input.files[0].name;
     label.textContent = filename;
     if (filename.includes("filesystem")) {
-      upload_btn_text.textContent = "Update Nigga's Filesystem";
+      upload_btn_text.textContent = "Update Homie's Filesystem";
     } else {
-      upload_btn_text.textContent = "Update Nigga's Firmware";
+      upload_btn_text.textContent = "Update Homie's Firmware";
     }
   } else {
     label.textContent = "Grab that .bin real quick.";
-    upload_btn_text.textContent = "Update Nigga";
+    upload_btn_text.textContent = "Update Homie";
   }
 }
 
@@ -105,14 +105,37 @@ function hidePanel(id) {
   document.getElementById(id).style.display = "none";
 }
 
+/* Auto-refresh: poll /info once a second while the panel is visible, and stop
+   the moment it is hidden. Guarded by inFlight so a slow response on a busy
+   device cannot queue up overlapping requests. */
+var infoTimer = null;
+var infoInFlight = false;
+
+function startInfoAutoRefresh() {
+  if (infoTimer !== null) return;
+  infoTimer = setInterval(function () {
+    if (!panelShown("info-container")) { stopInfoAutoRefresh(); return; }
+    if (infoInFlight) return;
+    fetchESPInfo();
+  }, 1000);
+}
+
+function stopInfoAutoRefresh() {
+  if (infoTimer === null) return;
+  clearInterval(infoTimer);
+  infoTimer = null;
+}
+
 // Bound to the info icon. Closes settings if it was open.
 function toggleESPInfo() {
   if (panelShown("info-container")) {
     hidePanel("info-container");
+    stopInfoAutoRefresh();
     return;
   }
   hidePanel("settings-container");
   fetchESPInfo();
+  startInfoAutoRefresh();
 }
 
 // Bound to the gear icon. Closes the info table if it was open.
@@ -122,6 +145,7 @@ function toggleSettings() {
     return;
   }
   hidePanel("info-container");
+  stopInfoAutoRefresh();          // info is being closed; stop polling
   fetchConfig();
 }
 
@@ -130,6 +154,8 @@ function fetchESPInfo() {
   const info_container = document.getElementById("info-container");
   
   let xhr = new XMLHttpRequest();
+  infoInFlight = true;
+  xhr.onloadend = function () { infoInFlight = false; };
   xhr.open("GET", "/info");
   xhr.onload = function () {
     if (xhr.status == 200) {
@@ -159,6 +185,7 @@ function fetchESPInfo() {
 
 function hideESPInfo() {
   hidePanel("info-container");
+  stopInfoAutoRefresh();
 }
 
 function rebootDevice() {
