@@ -122,7 +122,7 @@ void web_begin()
                 "<label>MQTT Port</label><input id=o value=8883>"
                 "<label>MQTT User</label><input id=u>"
                 "<label>MQTT Password</label><input id=m type=password>"
-                "<label>Device ID</label><input id=d>"
+                "<label>MQTT Client ID</label><input id=d>"
                 "<label>Updater Username</label><input id=n "
                 "placeholder='blank = keep current'>"
                 "<label>Updater Password</label><input id=w type=password "

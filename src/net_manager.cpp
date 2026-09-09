@@ -18,6 +18,7 @@ static unsigned long g_last_retry    = 0;
 static char          g_ap_ssid[33]   = {0};
 static DNSServer     g_dns;
 static bool          g_dns_active    = false;
+static IPAddress     g_bound_ip;      // address the listener/responder are bound to
 
 // The FLASH button cannot be sampled during power-on: holding GPIO0 low as the
 // device comes out of reset selects the ROM UART bootloader instead of running
@@ -77,6 +78,7 @@ static void enter_sta() {
     if (g_dns_active) { g_dns.stop(); g_dns_active = false; }
     WiFi.mode(WIFI_STA);
     WiFi.begin(config().wifi_ssid, config().wifi_psk);
+    g_bound_ip      = IPAddress(0, 0, 0, 0);
     g_state         = NET_STA_CONNECTING;
     g_state_entered = millis();
     Serial.printf("Connecting to %s\n", config().wifi_ssid);
@@ -99,12 +101,16 @@ void net_loop() {
 
     switch (g_state) {
     case NET_STA_CONNECTING:
-        if (WiFi.status() == WL_CONNECTED) {
+        // WL_CONNECTED means *associated*, which on the ESP8266 can be reported
+        // before DHCP has handed over an address. Binding then gives the
+        // listener and the mDNS responder 0.0.0.0 and neither answers, which is
+        // why the UI was unreachable until a manual reset happened to win the
+        // race. Wait for a real address before declaring the network up.
+        if (WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0)) {
             g_state         = NET_STA_CONNECTED;
             g_state_entered = millis();
-            Serial.printf("WiFi connected: %s\n", WiFi.localIP().toString().c_str());
-            // Only now does the station have an IP for the listener and the
-            // responder to bind to.
+            g_bound_ip      = WiFi.localIP();
+            Serial.printf("WiFi connected: %s\n", g_bound_ip.toString().c_str());
             web_on_network_up();
             for (int i = 0; i < 3; i++) {          // connected blink
                 digitalWrite(LED_BUILTIN, LOW);  delay(50);
@@ -120,6 +126,13 @@ void net_loop() {
         if (WiFi.status() != WL_CONNECTED) {
             Serial.println(F("WiFi lost; reconnecting."));
             enter_sta();
+        } else if (WiFi.localIP() != IPAddress(0, 0, 0, 0) &&
+                   WiFi.localIP() != g_bound_ip) {
+            // DHCP renewed onto a different address; re-bind or we keep
+            // listening on one nobody is talking to.
+            g_bound_ip = WiFi.localIP();
+            Serial.printf("Address changed to %s; re-binding.\n", g_bound_ip.toString().c_str());
+            web_on_network_up();
         }
         break;
 
