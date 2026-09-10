@@ -443,7 +443,7 @@ body::after {
     padding: .12rem 0;
     align-items: baseline;
 }
-.log-row + .log-row { border-top: 1px solid rgba(128, 128, 128, .15); }
+.log-row + .log-row { margin-top: 1px; }
 .log-time {
     flex: none;
     min-width: 4.2rem;
@@ -453,7 +453,20 @@ body::after {
 }
 .log-msg { word-break: break-word; flex: 1; }
 
-/* Severity tag. Fixed width so the messages stay aligned in a column. */
+/* ---------------------------------------------------------------
+   Severity colour coding. Three signals per row so a level reads at a
+   glance and does not rely on any single cue: a tinted row background,
+   a solid left border, and a coloured tag. The timestamp takes the
+   level colour too, which makes a run of problems obvious while
+   scrolling without having to read any of the text.
+   --------------------------------------------------------------- */
+.log-row {
+    border-left: 3px solid transparent;
+    padding-left: .45rem;
+    border-radius: .2rem;
+}
+
+/* Fixed width so messages stay aligned in a column. */
 .log-tag {
     flex: none;
     width: 3.1rem;
@@ -465,26 +478,39 @@ body::after {
     border-radius: .25rem;
     line-height: 1.5;
 }
-.log-tag-info  { background: rgba(108, 117, 125, .16); color: #5a6169; }
-.log-tag-warn  { background: rgba(255, 170, 0, .20);   color: #a06800; }
-.log-tag-error { background: rgba(214, 51, 108, .18);  color: #c02258; }
+.log-time { transition: color .15s; }
 
-.log-warn  .log-msg { color: #8a5a00; }
-.log-error .log-msg { color: #c02258; font-weight: 600; }
+/* ---- INFO: neutral, stays quiet so problems stand out ---- */
+.log-info .log-tag  { background: rgba(108, 117, 125, .16); color: #5a6169; }
 
-/* A tinted left edge makes a run of problems scannable without reading. */
-.log-warn  { box-shadow: inset 3px 0 0 -1px rgba(255, 170, 0, .8); padding-left: .35rem; }
-.log-error { box-shadow: inset 3px 0 0 -1px rgba(214, 51, 108, .9); padding-left: .35rem; }
+/* ---- WARN: amber ---- */
+.log-warn            { background: rgba(255, 170, 0, .10); border-left-color: #f0a020; }
+.log-warn .log-tag   { background: #f0a020; color: #3d2900; }
+.log-warn .log-time  { color: #a06800; font-weight: 600; }
+.log-warn .log-msg   { color: #8a5a00; }
 
-[data-bs-theme="dark"] .log-tag-info  { background: rgba(173, 181, 189, .16); color: #adb5bd; }
-[data-bs-theme="dark"] .log-tag-warn  { background: rgba(255, 193, 7, .20);   color: #ffd066; }
-[data-bs-theme="dark"] .log-tag-error { background: rgba(255, 143, 171, .18); color: #ff8fab; }
-[data-bs-theme="dark"] .log-warn  .log-msg { color: #ffd066; }
-[data-bs-theme="dark"] .log-error .log-msg { color: #ff8fab; }
+/* ---- ERROR: red ---- */
+.log-error           { background: rgba(214, 51, 108, .10); border-left-color: #d6336c; }
+.log-error .log-tag  { background: #d6336c; color: #fff; }
+.log-error .log-time { color: #c02258; font-weight: 700; }
+.log-error .log-msg  { color: #c02258; font-weight: 600; }
+
+/* ---- dark theme ---- */
+[data-bs-theme="dark"] .log-info .log-tag  { background: rgba(173, 181, 189, .18); color: #adb5bd; }
+
+[data-bs-theme="dark"] .log-warn           { background: rgba(255, 193, 7, .12); border-left-color: #ffc107; }
+[data-bs-theme="dark"] .log-warn .log-tag  { background: #ffc107; color: #3d2900; }
+[data-bs-theme="dark"] .log-warn .log-time { color: #ffd066; }
+[data-bs-theme="dark"] .log-warn .log-msg  { color: #ffd066; }
+
+[data-bs-theme="dark"] .log-error           { background: rgba(255, 105, 140, .14); border-left-color: #ff698c; }
+[data-bs-theme="dark"] .log-error .log-tag  { background: #ff698c; color: #2b0010; }
+[data-bs-theme="dark"] .log-error .log-time { color: #ff8fab; }
+[data-bs-theme="dark"] .log-error .log-msg  { color: #ff8fab; }
 
 /* Tab shows a count when anything needs attention. */
-.info-tab.has-issues { color: #c02258; }
-.info-tab.has-issues.active { border-bottom-color: #c02258; }
+.info-tab.has-issues { color: #d6336c; }
+.info-tab.has-issues.active { border-bottom-color: #d6336c; }
 [data-bs-theme="dark"] .info-tab.has-issues,
 [data-bs-theme="dark"] .info-tab.has-issues.active { color: #ff8fab; }
 [data-bs-theme="dark"] .info-tab.has-issues.active { border-bottom-color: #ff8fab; }
