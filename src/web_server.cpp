@@ -248,10 +248,11 @@ void web_begin()
         // so no rollback snapshot is needed: on failure the live config is
         // still byte-identical to what is persisted.
         if (!config_store_save_from(tmp)) {
+            log_error("Could not write settings to memory; nothing was changed");
             http_server.send(500, "application/json", "{\"error\":\"eeprom write failed\"}");
             return;
         }
-        log_add("Settings saved, restarting");
+        log_info("Settings saved, restarting");
         http_server.send(200, "application/json", "{\"ok\":true,\"rebooting\":true}");
         delay(500);
         ESP.restart(); });
@@ -273,7 +274,7 @@ void web_begin()
     http_server.on("/factory_reset", HTTP_POST, []()
                    {
         if (!guard_post()) return;
-        log_add("Factory reset requested from the web interface");
+        log_warn("Factory reset requested from the web interface");
         http_server.send(200, "application/json", "{\"ok\":true,\"rebooting\":true}");
         delay(500);
         net_factory_reset_and_reboot(); });
@@ -336,7 +337,7 @@ void web_begin()
             update_started    = false;
             update_failed     = false;
             update_authorized = post_authorized();
-            log_add("Upload started: %s", upload.filename.c_str());
+            log_info("Upload started: %s", upload.filename.c_str());
         }
         if (!update_authorized || update_failed) return;
 
@@ -347,7 +348,7 @@ void web_begin()
                 const size_t size    = (type == IMAGE_FIRMWARE)
                                      ? ((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)
                                      : fs_size_for_update();
-                log_add("Detected a %s image", type == IMAGE_FIRMWARE ? "firmware" : "filesystem");
+                log_info("Detected a %s image", type == IMAGE_FIRMWARE ? "firmware" : "filesystem");
                 if (!Update.begin(size, command)) {
                     Update.printError(Serial);
                     update_failed = true;   // never re-detect on mid-file bytes
@@ -359,8 +360,8 @@ void web_begin()
                 Update.printError(Serial);
             }
         } else if (upload.status == UPLOAD_FILE_END) {
-            if (Update.end(true)) log_add("Upload finished: %u bytes written", upload.totalSize);
-            else                  { log_add("Upload FAILED during write"); Update.printError(Serial); }
+            if (Update.end(true)) log_info("Upload finished: %u bytes written", upload.totalSize);
+            else                  { log_error("Upload failed while writing to flash"); Update.printError(Serial); }
         } });
 
     // Handle 404 and Static Files (JS/CSS)
@@ -441,9 +442,9 @@ void web_on_network_up()
     MDNS.end();                       // no-op if never started; safe on reconnect
     if (MDNS.begin(config().mdns_host)) {
         MDNS.addService("http", "tcp", 80);
-        log_add("Web interface ready at http://%s and http://%s.local",
+        log_info("Web interface ready at http://%s and http://%s.local",
                 addr.c_str(), config().mdns_host);
     } else {
-        log_add("Web interface ready at http://%s (.local name unavailable)", addr.c_str());
+        log_warn("Web interface ready at http://%s (.local name unavailable)", addr.c_str());
     }
 }

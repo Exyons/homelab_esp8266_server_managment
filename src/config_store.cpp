@@ -1,4 +1,5 @@
 #include "config_store.h"
+#include "log_store.h"
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <string.h>
@@ -41,7 +42,7 @@ void config_store_factory_reset() {
     // Nothing downstream can act on a failure here — the caller reboots — but
     // an unlogged failed erase would look exactly like a successful one.
     if (!EEPROM.commit()) {
-        Serial.println(F("EEPROM erase failed; stored config may survive reset."));
+        log_error("Could not erase saved settings; they may survive the reset");
     }
     config_set_defaults(g_config);
     g_valid = false;

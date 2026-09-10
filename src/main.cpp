@@ -33,7 +33,7 @@ void setup() {
     }
 
     log_begin();
-    log_add("Booted after %s, firmware v%s",
+    log_info("Booted after %s, firmware v%s",
             ESP.getResetReason().c_str(), firmware_version.c_str());
 
     config_store_begin();   // must precede net_begin(); it reads the config

@@ -172,7 +172,7 @@ static void reconnect() {
                                    config().mqtt_user, config().mqtt_pass,
                                    topic_status, 0, true, "offline");
     if (ok) {
-        log_add("MQTT broker connected (%s)", config().mqtt_host);
+        log_info("MQTT broker connected (%s)", config().mqtt_host);
         // Retained, so a late subscriber sees current state. Paired with the LWT.
         client.publish(topic_status, "online", true);
 
@@ -190,7 +190,7 @@ static void reconnect() {
 
         client.subscribe(topic_command);
     } else {
-        log_add("MQTT broker unreachable (error %d), retrying in %lus",
+        log_warn("MQTT broker unreachable (error %d), retrying in %lus",
                 client.state(), (unsigned long)(mqtt_reconnect_interval / 1000));
     }
 }
@@ -224,7 +224,7 @@ void mqtt_loop() {
         static bool warned = false;
         if (!warned) {
             warned = true;
-            log_add("No MQTT broker configured, skipping");
+            log_warn("No MQTT broker configured, skipping");
         }
         return;
     }

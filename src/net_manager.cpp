@@ -47,7 +47,7 @@ static bool flash_button_held_for_reset() {
                 digitalWrite(LED_BUILTIN, HIGH);
                 delay(50);
             }
-            log_add("FLASH button held: erasing saved settings");
+            log_warn("FLASH button held: erasing saved settings");
             return true;
         }
         delay(10);
@@ -72,7 +72,7 @@ static void enter_ap() {
     g_state_entered = millis();
     g_last_retry    = millis();
 
-    log_add("Setup hotspot active: %s at http://%s", g_ap_ssid, ip.toString().c_str());
+    log_info("Setup hotspot active: %s at http://%s", g_ap_ssid, ip.toString().c_str());
     web_on_network_up();          // softAP already holds 192.168.4.1
 }
 
@@ -90,7 +90,7 @@ static void enter_sta() {
     g_bound_ip      = IPAddress(0, 0, 0, 0);
     g_state         = NET_STA_CONNECTING;
     g_state_entered = millis();
-    log_add("Joining WiFi network \"%s\"", config().wifi_ssid);
+    log_info("Joining WiFi network \"%s\"", config().wifi_ssid);
 }
 
 void net_begin() {
@@ -121,7 +121,7 @@ void net_loop() {
             g_state         = NET_STA_CONNECTED;
             g_state_entered = millis();
             g_bound_ip      = WiFi.localIP();
-            log_add("WiFi connected as %s, signal %d dBm",
+            log_info("WiFi connected as %s, signal %d dBm",
                     g_bound_ip.toString().c_str(), WiFi.RSSI());
             web_on_network_up();
             for (int i = 0; i < 3; i++) {          // connected blink
@@ -129,21 +129,21 @@ void net_loop() {
                 digitalWrite(LED_BUILTIN, HIGH); delay(50);
             }
         } else if (millis() - g_state_entered >= STA_CONNECT_TIMEOUT_MS) {
-            log_add("WiFi did not connect within 30s, opening setup hotspot");
+            log_warn("WiFi did not connect within 30s, opening setup hotspot");
             enter_ap();
         }
         break;
 
     case NET_STA_CONNECTED:
         if (WiFi.status() != WL_CONNECTED) {
-            log_add("WiFi connection lost, reconnecting");
+            log_warn("WiFi connection lost, reconnecting");
             enter_sta();
         } else if (WiFi.localIP() != IPAddress(0, 0, 0, 0) &&
                    WiFi.localIP() != g_bound_ip) {
             // DHCP renewed onto a different address; re-bind or we keep
             // listening on one nobody is talking to.
             g_bound_ip = WiFi.localIP();
-            log_add("Router assigned a new address: %s", g_bound_ip.toString().c_str());
+            log_info("Router assigned a new address: %s", g_bound_ip.toString().c_str());
             web_on_network_up();
         }
         break;
@@ -162,7 +162,7 @@ void net_loop() {
         if (!config().ap_forced && config_is_provisioned(config()) &&
             millis() - g_last_retry >= AP_STA_RETRY_MS) {
             g_last_retry = millis();
-            log_add("Retrying the saved WiFi network");
+            log_info("Retrying the saved WiFi network");
             enter_sta();
         }
         break;
@@ -179,7 +179,7 @@ void net_set_ap_forced(bool forced) {
     // write cannot be reported to the caller. Log it, so the serial console
     // disagrees with the UI rather than both silently claiming success.
     if (!config_store_save()) {
-        log_add("WARNING: could not save hotspot setting to memory");
+        log_error("Could not save hotspot setting to memory");
     }
     delay(200);
     ESP.restart();

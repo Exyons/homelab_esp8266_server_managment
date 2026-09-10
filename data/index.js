@@ -149,21 +149,34 @@ function fetchLogs() {
     if (list.dataset.stamp === stamp) return;
     list.dataset.stamp = stamp;
 
+    var bad = entries.filter(function (x) { return x.l === "warn" || x.l === "error"; }).length;
+    var tab = document.getElementById("tab-logs");
+    tab.innerText = bad ? "Logs (" + bad + ")" : "Logs";
+    tab.classList.toggle("has-issues", bad > 0);
+
     var atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 24;
     list.innerHTML = "";
     entries.forEach(function (e) {
+      // Severity comes from the device, which knows what happened. The old
+      // keyword match on the message text guessed, and guessed wrong.
+      var level = e.l === "error" || e.l === "warn" ? e.l : "info";
+
       var row  = document.createElement("div");
-      row.className = "log-row";
+      row.className = "log-row log-" + level;
+
       var time = document.createElement("span");
       time.className = "log-time";
       time.innerText = e.t;
+
+      var tag  = document.createElement("span");
+      tag.className = "log-tag log-tag-" + level;
+      tag.innerText = level === "error" ? "ERR" : level === "warn" ? "WARN" : "INFO";
+
       var msg  = document.createElement("span");
       msg.className = "log-msg";
       msg.innerText = e.m;
-      if (/fail|warning|lost|unreachable|could not|erasing/i.test(e.m)) {
-        row.classList.add("log-warn");
-      }
-      row.append(time, msg);
+
+      row.append(time, tag, msg);
       list.append(row);
     });
     if (atBottom) list.scrollTop = list.scrollHeight;

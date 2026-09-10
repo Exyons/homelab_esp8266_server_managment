@@ -451,9 +451,43 @@ body::after {
     font-variant-numeric: tabular-nums;
     opacity: .6;
 }
-.log-msg { word-break: break-word; }
-.log-warn .log-msg { color: #d6336c; font-weight: 600; }
-[data-bs-theme="dark"] .log-warn .log-msg { color: #ff8fab; }
+.log-msg { word-break: break-word; flex: 1; }
+
+/* Severity tag. Fixed width so the messages stay aligned in a column. */
+.log-tag {
+    flex: none;
+    width: 3.1rem;
+    text-align: center;
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: .05rem 0;
+    border-radius: .25rem;
+    line-height: 1.5;
+}
+.log-tag-info  { background: rgba(108, 117, 125, .16); color: #5a6169; }
+.log-tag-warn  { background: rgba(255, 170, 0, .20);   color: #a06800; }
+.log-tag-error { background: rgba(214, 51, 108, .18);  color: #c02258; }
+
+.log-warn  .log-msg { color: #8a5a00; }
+.log-error .log-msg { color: #c02258; font-weight: 600; }
+
+/* A tinted left edge makes a run of problems scannable without reading. */
+.log-warn  { box-shadow: inset 3px 0 0 -1px rgba(255, 170, 0, .8); padding-left: .35rem; }
+.log-error { box-shadow: inset 3px 0 0 -1px rgba(214, 51, 108, .9); padding-left: .35rem; }
+
+[data-bs-theme="dark"] .log-tag-info  { background: rgba(173, 181, 189, .16); color: #adb5bd; }
+[data-bs-theme="dark"] .log-tag-warn  { background: rgba(255, 193, 7, .20);   color: #ffd066; }
+[data-bs-theme="dark"] .log-tag-error { background: rgba(255, 143, 171, .18); color: #ff8fab; }
+[data-bs-theme="dark"] .log-warn  .log-msg { color: #ffd066; }
+[data-bs-theme="dark"] .log-error .log-msg { color: #ff8fab; }
+
+/* Tab shows a count when anything needs attention. */
+.info-tab.has-issues { color: #c02258; }
+.info-tab.has-issues.active { border-bottom-color: #c02258; }
+[data-bs-theme="dark"] .info-tab.has-issues,
+[data-bs-theme="dark"] .info-tab.has-issues.active { color: #ff8fab; }
+[data-bs-theme="dark"] .info-tab.has-issues.active { border-bottom-color: #ff8fab; }
 
 /* offline fallback */
 .nobs .info-tab { background: transparent; border: none; border-bottom: 2px solid transparent; }
