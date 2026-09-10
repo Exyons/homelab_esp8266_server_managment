@@ -37,10 +37,10 @@ def create_release(source, target, env):
         os.makedirs(dest_path)
         
     release_name = os.path.join(
-        dest_path, f"nigga_{bin_type}_v{firmware_version}.bin"
+        dest_path, f"homie_{bin_type}_v{firmware_version}.bin"
     )
     release_name_verbose = os.path.join(
-        dest_path, f"nigga_{bin_type}_v{firmware_version}_{timestamp}.bin"
+        dest_path, f"homie_{bin_type}_v{firmware_version}_{timestamp}.bin"
     )
     
     shutil.copy2(bin_path, release_name)

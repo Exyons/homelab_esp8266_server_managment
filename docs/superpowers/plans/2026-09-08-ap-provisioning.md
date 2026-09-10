@@ -165,18 +165,41 @@ void test_wrong_magic_is_rejected(void) {
     TEST_ASSERT_FALSE(config_deserialize(blob, out));
 }
 
-void test_serialize_zeroes_padding_deterministically(void) {
-    Config a, b;
-    config_set_defaults(a);
-    memset(&b, 0xAB, sizeof(b));     // fill b with junk including padding
-    config_set_defaults(b);          // must fully zero it again
-    strcpy(a.wifi_ssid, "Net");
-    strcpy(b.wifi_ssid, "Net");
+void test_serialize_ignores_caller_padding(void) {
+    Config clean, dirty;
 
-    uint8_t blob_a[CONFIG_BLOB_SIZE], blob_b[CONFIG_BLOB_SIZE];
-    config_serialize(a, blob_a);
-    config_serialize(b, blob_b);
-    TEST_ASSERT_EQUAL_INT(0, memcmp(blob_a, blob_b, CONFIG_BLOB_SIZE));
+    // clean: built the normal way, through config_set_defaults.
+    config_set_defaults(clean);
+    strcpy(clean.wifi_ssid, "TestNet");
+    clean.mqtt_port = 8884;
+
+    // dirty: same logical field values, but the padding between members is
+    // left holding 0xAB. config_set_defaults is deliberately NOT called here —
+    // it memsets the whole object, which would scrub the very bytes this test
+    // needs dirty. Every named field is cleared and set individually instead.
+    memset(&dirty, 0xAB, sizeof(dirty));
+    dirty.magic = CONFIG_MAGIC;
+    dirty.version = CONFIG_VERSION;
+    dirty.mqtt_port = 8884;
+    dirty.ap_forced = false;
+    memset(dirty.wifi_ssid, 0, sizeof(dirty.wifi_ssid));
+    strcpy(dirty.wifi_ssid, "TestNet");
+    memset(dirty.wifi_psk,  0, sizeof(dirty.wifi_psk));
+    memset(dirty.mqtt_host, 0, sizeof(dirty.mqtt_host));
+    memset(dirty.mqtt_user, 0, sizeof(dirty.mqtt_user));
+    memset(dirty.mqtt_pass, 0, sizeof(dirty.mqtt_pass));
+    memset(dirty.device_id, 0, sizeof(dirty.device_id));
+    memset(dirty.mdns_host, 0, sizeof(dirty.mdns_host));
+    strcpy(dirty.mdns_host, "esp-updater");
+    memset(dirty.upd_user,  0, sizeof(dirty.upd_user));
+    strcpy(dirty.upd_user, "admin");
+    memset(dirty.upd_pass,  0, sizeof(dirty.upd_pass));
+    strcpy(dirty.upd_pass, "admin");
+
+    uint8_t blob_clean[CONFIG_BLOB_SIZE], blob_dirty[CONFIG_BLOB_SIZE];
+    config_serialize(clean, blob_clean);
+    config_serialize(dirty, blob_dirty);
+    TEST_ASSERT_EQUAL_INT(0, memcmp(blob_clean, blob_dirty, CONFIG_BLOB_SIZE));
 }
 
 int main(int, char**) {
@@ -189,12 +212,14 @@ int main(int, char**) {
     RUN_TEST(test_erased_flash_blob_is_rejected);
     RUN_TEST(test_corrupt_crc_is_rejected);
     RUN_TEST(test_wrong_magic_is_rejected);
-    RUN_TEST(test_serialize_zeroes_padding_deterministically);
+    RUN_TEST(test_serialize_ignores_caller_padding);
     return UNITY_END();
 }
 ```
 
-`test_serialize_zeroes_padding_deterministically` is the regression guard for the padding defect identified during spec review: two logically identical configs must produce byte-identical blobs regardless of prior memory contents.
+`test_serialize_ignores_caller_padding` is the regression guard for the padding defect identified during spec review: two logically identical configs must produce byte-identical blobs regardless of what the padding between their members happens to hold.
+
+An earlier draft of this plan specified a test named `test_serialize_zeroes_padding_deterministically`, which dirtied a `Config` with `memset(&b, 0xAB, sizeof(b))` and then called `config_set_defaults(b)`. That test was vacuous and could never fail: `config_set_defaults` memsets the entire object, so it erased the very padding the test meant to dirty, and the two blobs were guaranteed identical no matter how `config_serialize` behaved. The shipped test therefore skips `config_set_defaults` on the dirty copy and clears and assigns each named field by hand, leaving the inter-member padding at `0xAB`. That is what actually exercises the field-by-field serialiser: if `config_serialize` ever regressed to a raw `memcpy` of the struct, this version fails and the original would not.
 
 - [ ] **Step 3: Run the test to verify it fails**
 
@@ -1038,7 +1063,7 @@ bool mqtt_connected();
 Create `src/mqtt_client.cpp`. Move `callback()` (`src/main.cpp:170-283`) and `reconnect()` (`src/main.cpp:285-309`) here, applying these changes:
 
 1. Read every credential from `config()` instead of the `-D` macros.
-2. Delete the `delay(100)` chains in the `FUCK_YOU` and `DIDDY` branches — they stall `client.loop()` and the MQTT keepalive. Publish the lines back to back.
+2. Delete the `delay(100)` chains in the `SCREW_YOU` and `PARTY` branches — they stall `client.loop()` and the MQTT keepalive. Publish the lines back to back.
 3. Fix the integer division in the retry log: `mqtt_reconnect_interval / 1000.0`.
 4. Rewrite `send_magic_packet` to use `broadcast_addr` and `beginPacket`.
 5. Add the four new commands.
@@ -1308,7 +1333,7 @@ Flash, then:
 - Browse to the device; the updater page loads after auth.
 - `curl -u admin:admin -X POST -H "Origin: http://evil.test" http://<ip>/reboot` returns 403.
 - `curl -u admin:admin -X POST http://<ip>/reboot` succeeds.
-- Rename a firmware `.bin` to `nigga_filesystem_test.bin` and upload it; serial must report `Target: Firmware`.
+- Rename a firmware `.bin` to `homie_filesystem_test.bin` and upload it; serial must report `Target: Firmware`.
 
 - [ ] **Step 4: Commit**
 
@@ -1518,9 +1543,9 @@ At `data/index.js:66`, `upload_btn.textContent` throws — the element id is `up
 
 ```javascript
 // before
-upload_btn.textContent = "Update Nigga";
+upload_btn.textContent = "Update Homie";
 // after
-upload_btn_text.textContent = "Update Nigga";
+upload_btn_text.textContent = "Update Homie";
 ```
 
 - [ ] **Step 2: Add the settings panel markup**

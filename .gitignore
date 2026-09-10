@@ -5,8 +5,11 @@
 .vscode/ipch
 platformio.ini
 
-# Build outputs — firmware binaries embed every -D build flag
-# (WiFi PSK, MQTT creds, UPDATE_PASSWORD) as plaintext strings.
-# Never commit these. Attach them to GitHub Releases only if
-# they were built with non-secret credentials.
+# Build outputs. Firmware binaries no longer contain any WiFi, MQTT or
+# updater credentials — those live in EEPROM, entered at provisioning time —
+# so published binaries are safe. Ignored purely for repo size and hygiene:
+# build artefacts are regenerated, and belong on GitHub Releases instead.
 release/
+
+# Subagent-driven-development scratch workspace
+.superpowers/
